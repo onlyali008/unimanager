@@ -18,6 +18,7 @@ export const VAULT_FOLDERS = [
   "daily-notes",
   "insights",
   "moc",
+  "schedule",
 ] as const;
 
 const SCHEMA_DOC = `---
@@ -38,7 +39,8 @@ schema per domain — do not add or rename frontmatter fields by hand.
 | fitness/YYYY-MM-DD.md | day | workouts[] (activity, category, duration_min, intensity 1-5, calories_burned, source, garmin_activity_id), totals |
 | sleep/YYYY-MM-DD.md | wake-up day | bedtime, wake_time, duration_h, quality 1-5, interruptions, naps_min, source, sleep_score |
 | wellness/YYYY-MM-DD.md | day | mood, energy, stress (all 1-5, null until checked in), symptoms[], garmin { steps, resting_hr, stress_avg, body_battery_high/low } |
-| academics/{course}/notes-and-deadlines.md | course | course, course_name, term, credits, deadlines[] (title, due, kind, status, weight_pct) |
+| academics/{course}/notes-and-deadlines.md | course | course, course_name, term, credits, deadlines[] (title, due, kind, status, weight_pct), meetings[] (day, start, end, location) |
+| schedule/recurring.md | vault | items[] (title, module, day, start, end) — weekly recurring blocks owned by other modules |
 | finances/YYYY-MM.md | month | currency (CAD), transactions[] (date, amount signed, category, description), totals |
 | daily-notes/YYYY-MM-DD.md | day | date only — body holds wikilinks to that day's entries plus a reflection |
 | insights/YYYY-Www.md | week | week — written by the AI pipeline in a later phase |
@@ -53,6 +55,8 @@ Schema change log: 2026-07-06 — additive Garmin fields (fitness
 source/garmin_activity_id, sleep source/sleep_score, wellness garmin
 block); wellness mood/energy/stress became nullable so a Garmin sync can
 exist before a subjective check-in. Garmin never overwrites manual data.
+2026-07-06 (Phase 2) — additive meetings[] on academics courses; new
+schedule/ folder with recurring.md for weekly cross-module blocks.
 `;
 
 function mocBody(domain: DomainSlug): string {

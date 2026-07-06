@@ -104,6 +104,27 @@ deadlines:
     kind: assignment          # assignment | exam | quiz | project | reading
     status: todo              # todo | in_progress | done
     weight_pct: 10            # optional (null)
+meetings:                     # weekly class times (Phase 2, additive)
+  - day: mon                  # mon..sun
+    start: "10:00"
+    end: "11:20"
+    location: "MC 2054"       # optional (null)
+```
+
+### schedule/recurring.md — one note for the whole vault (Phase 2)
+
+Weekly recurring blocks that belong to other modules (gym = fitness,
+therapy = wellness, study group = academics…). Feeds the schedule
+calendar and conflict detection alongside course meetings.
+
+```yaml
+type: schedule
+items:
+  - title: "Gym — push day"
+    module: fitness           # fitness | wellness | academics | other
+    day: tue
+    start: "18:00"
+    end: "19:30"
 ```
 
 ### finances/YYYY-MM.md — one per month
@@ -138,3 +159,7 @@ Both are stubs until later phases fill them.
   wellness gained an objective `garmin` block, and `mood`/`energy`/
   `stress` became nullable so a sync can land before a subjective
   check-in. Garmin data and subjective ratings are kept strictly apart.
+- **2026-07-06 (Phase 2 schedule, additive):** academics courses gained
+  `meetings[]` (weekly class times); new `schedule/` folder with a single
+  `recurring.md` note holding weekly cross-module blocks tagged with the
+  module that owns them.

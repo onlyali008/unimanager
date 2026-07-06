@@ -68,6 +68,27 @@ export const transactionPayload = z.object({
   description: z.string().min(1).max(200),
 });
 
+const weekday = z.enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
+
+export const schedulePayload = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("meeting"),
+    course: z.string().min(1).max(60),
+    day: weekday,
+    start: clock,
+    end: clock,
+    location: z.string().max(120).nullable(),
+  }),
+  z.object({
+    action: z.literal("recurring"),
+    title: z.string().min(1).max(120),
+    module: z.enum(["fitness", "wellness", "academics", "other"]),
+    day: weekday,
+    start: clock,
+    end: clock,
+  }),
+]);
+
 export const academicsPayload = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("course"),

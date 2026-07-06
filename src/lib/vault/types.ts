@@ -13,7 +13,7 @@ export type DomainSlug =
   | "academics"
   | "finances";
 
-export type NoteType = DomainSlug | "daily" | "insight" | "moc";
+export type NoteType = DomainSlug | "daily" | "insight" | "moc" | "schedule";
 
 /** Fields shared by every note in the vault. */
 export interface BaseFrontmatter {
@@ -136,6 +136,16 @@ export interface Deadline {
   weight_pct: number | null;
 }
 
+export type Weekday = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+
+/** Added 2026-07-06 (Phase 2): weekly class meeting time. */
+export interface CourseMeeting {
+  day: Weekday;
+  start: string;
+  end: string;
+  location: string | null;
+}
+
 export interface AcademicsFrontmatter extends BaseFrontmatter {
   type: "academics";
   course: string;
@@ -143,6 +153,8 @@ export interface AcademicsFrontmatter extends BaseFrontmatter {
   term: string;
   credits: number;
   deadlines: Deadline[];
+  /** Added 2026-07-06 (Phase 2); older notes without it read as []. */
+  meetings: CourseMeeting[];
 }
 
 export type TransactionCategory =
@@ -190,4 +202,19 @@ export interface InsightFrontmatter extends BaseFrontmatter {
 export interface MocFrontmatter extends BaseFrontmatter {
   type: "moc";
   domain: DomainSlug;
+}
+
+/** A weekly recurring block owned by one of the tracking modules. */
+export interface RecurringItem {
+  title: string;
+  module: "fitness" | "wellness" | "academics" | "other";
+  day: Weekday;
+  start: string;
+  end: string;
+}
+
+/** schedule/recurring.md — the single note holding non-course recurring items. */
+export interface ScheduleFrontmatter extends BaseFrontmatter {
+  type: "schedule";
+  items: RecurringItem[];
 }

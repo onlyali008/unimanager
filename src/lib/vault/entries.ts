@@ -5,12 +5,15 @@ import { lastNDates, monthOf, monthsCoveringLastNDays } from "./dates";
 import { listNotes, readNote, resolveInVault, writeNote } from "./fs";
 import type {
   AcademicsFrontmatter,
+  CourseMeeting,
   Deadline,
   FinancesFrontmatter,
   FitnessFrontmatter,
   GarminWellness,
   MealEntry,
   NutritionFrontmatter,
+  RecurringItem,
+  ScheduleFrontmatter,
   SleepFrontmatter,
   Transaction,
   WellnessFrontmatter,
@@ -245,6 +248,7 @@ export async function upsertCourse(input: CourseInput): Promise<string> {
     type: "academics",
     ...input,
     deadlines: existing?.frontmatter.deadlines ?? [],
+    meetings: existing?.frontmatter.meetings ?? [],
     tags: existing?.frontmatter.tags ?? [],
     created: existing?.frontmatter.created ?? nowISO(),
   };
@@ -254,6 +258,64 @@ export async function upsertCourse(input: CourseInput): Promise<string> {
     existing?.body ?? `# ${input.course} — ${input.course_name}\n\n`,
   );
   return slug;
+}
+
+const WEEKDAY_ORDER: Record<string, number> = {
+  mon: 0,
+  tue: 1,
+  wed: 2,
+  thu: 3,
+  fri: 4,
+  sat: 5,
+  sun: 6,
+};
+
+export async function addCourseMeeting(
+  course: string,
+  meeting: CourseMeeting,
+): Promise<boolean> {
+  const slug = courseSlug(course);
+  const relPath = `academics/${slug}/notes-and-deadlines.md`;
+  const existing = await readNote<AcademicsFrontmatter>(relPath);
+  if (!existing) return false;
+  const meetings = [...(existing.frontmatter.meetings ?? []), meeting].sort(
+    (a, b) =>
+      WEEKDAY_ORDER[a.day] - WEEKDAY_ORDER[b.day] ||
+      a.start.localeCompare(b.start),
+  );
+  await writeNote(
+    relPath,
+    { ...existing.frontmatter, meetings },
+    existing.body,
+  );
+  return true;
+}
+
+const RECURRING_PATH = "schedule/recurring.md";
+
+export async function getRecurringItems(): Promise<RecurringItem[]> {
+  const note = await readNote<ScheduleFrontmatter>(RECURRING_PATH);
+  return note?.frontmatter.items ?? [];
+}
+
+export async function addRecurringItem(item: RecurringItem): Promise<void> {
+  const existing = await readNote<ScheduleFrontmatter>(RECURRING_PATH);
+  const items = [...(existing?.frontmatter.items ?? []), item].sort(
+    (a, b) =>
+      WEEKDAY_ORDER[a.day] - WEEKDAY_ORDER[b.day] ||
+      a.start.localeCompare(b.start),
+  );
+  const frontmatter: ScheduleFrontmatter = {
+    type: "schedule",
+    items,
+    tags: existing?.frontmatter.tags ?? [],
+    created: existing?.frontmatter.created ?? nowISO(),
+  };
+  await writeNote(
+    RECURRING_PATH,
+    { ...frontmatter },
+    existing?.body ?? "# Recurring schedule\n\nManaged by Semestra.\n",
+  );
 }
 
 export async function addDeadline(
@@ -332,7 +394,14 @@ export async function getCourses(): Promise<AcademicsFrontmatter[]> {
     const note = await readNote<AcademicsFrontmatter>(
       `academics/${dir}/notes-and-deadlines.md`,
     );
-    if (note) courses.push(note.frontmatter);
+    if (note) {
+      // Normalize notes written before the Phase 2 meetings field existed.
+      courses.push({
+        ...note.frontmatter,
+        deadlines: note.frontmatter.deadlines ?? [],
+        meetings: note.frontmatter.meetings ?? [],
+      });
+    }
   }
   return courses.sort((a, b) => a.course.localeCompare(b.course));
 }
