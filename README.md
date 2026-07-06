@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Semestra
 
-## Getting Started
+Your university life in one calm place — nutrition, fitness, sleep,
+wellness, academics, and finances, tracked as plain markdown notes in an
+Obsidian vault, with dashboards, a schedule maker, and an AI assistant on
+top.
 
-First, run the development server:
+## How it works
+
+There is no database. Every entry is an atomic markdown note with locked
+YAML frontmatter inside your Obsidian vault (`OBSIDIAN_VAULT_PATH`), so
+your data stays yours, greppable, and editable in Obsidian. The app is a
+Next.js UI over that vault.
+
+- Vault schema: [docs/vault-schema.md](docs/vault-schema.md)
+- Design system: [docs/design-system.md](docs/design-system.md)
+
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # then edit values
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`.env.local`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Purpose |
+| --- | --- |
+| `OBSIDIAN_VAULT_PATH` | Absolute path to your vault; folder structure is created on first run |
+| `FDC_API_KEY` | USDA FoodData Central key for nutrition search (Phase 1) |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Stack
 
-## Learn More
+Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · shadcn/ui ·
+gray-matter for frontmatter I/O · next-themes for dark mode.
 
-To learn more about Next.js, take a look at the following resources:
+## Roadmap
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Phase 0 — Foundation** (this): design system, vault structure +
+  typed fs layer, app shell with sidebar navigation.
+- **Phase 1 — Core tracking**: entry forms + dashboards per domain,
+  USDA FDC-powered nutrition logging, auto-created daily notes.
+- **Phase 2 — Schedule maker**: calendar from academic deadlines with
+  conflict detection.
+- **Phase 3 — AI**: nightly Ollama tagging/embeddings, weekly insight
+  notes, Claude-powered assistant with vault retrieval.
+- **Phase 4 — Packaging**: Tauri (desktop) and Capacitor (mobile).
+- **Phase 5 — Polish**: UI and code-quality pass.
+- **Phase 6 — Remote access**: Tailscale setup docs.
