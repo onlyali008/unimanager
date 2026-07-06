@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname),
   },
+  // The desktop (Tauri) build bundles the app as a self-contained Node
+  // server. Regular `next dev` / `next start` are unaffected.
+  output: process.env.BUILD_STANDALONE === "1" ? "standalone" : undefined,
 };
 
 export default nextConfig;

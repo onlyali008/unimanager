@@ -49,6 +49,8 @@ gray-matter for frontmatter I/O · next-themes for dark mode.
 - **Phase 3 — AI** (this): nightly Ollama tagging/embeddings, weekly
   insight notes, Claude-powered assistant with vault retrieval — see
   [docs/ai-jobs.md](docs/ai-jobs.md).
-- **Phase 4 — Packaging**: Tauri (desktop) and Capacitor (mobile).
+- **Phase 4 — Packaging** (this): Tauri desktop app bundling the full
+  server; Capacitor Android thin client that connects to your PC — see
+  [docs/packaging.md](docs/packaging.md).
 - **Phase 5 — Polish**: UI and code-quality pass.
 - **Phase 6 — Remote access**: Tailscale setup docs.

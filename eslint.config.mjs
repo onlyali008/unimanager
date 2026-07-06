@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated packaging artifacts (Phase 4):
+    "src-tauri/target/**",
+    "src-tauri/gen/**",
+    "android/**",
   ]),
 ]);
 
