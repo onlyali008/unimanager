@@ -54,8 +54,10 @@ workouts:
   - activity: "Push day"
     category: strength        # strength | cardio | sport | mobility | other
     duration_min: 55
-    intensity: 4              # 1–5 perceived effort
+    intensity: 4              # 1–5 perceived effort (estimated from HR for Garmin)
     calories_burned: null     # optional
+    source: manual            # manual | garmin
+    garmin_activity_id: null  # Garmin id, used for sync dedup
 totals: { duration_min: 0, sessions: 0 }
 ```
 
@@ -66,19 +68,27 @@ date: "2026-07-06"
 bedtime: "23:40"
 wake_time: "07:30"
 duration_h: 7.8
-quality: 4                    # 1–5
+quality: 4                    # 1–5 (Garmin sleep score mapped to 1–5)
 interruptions: 1
 naps_min: 0
+source: manual                # manual | garmin — manual notes are never overwritten by sync
+sleep_score: null             # Garmin 0–100 score; null for manual entries
 ```
 
 ### wellness/YYYY-MM-DD.md — one per day; reflection in body
 
 ```yaml
 date: "2026-07-06"
-mood: 4                       # 1–5
-energy: 3                     # 1–5
-stress: 2                     # 1–5
+mood: 4                       # 1–5, null until you check in
+energy: 3                     # 1–5, null until you check in
+stress: 2                     # 1–5, null until you check in
 symptoms: []
+garmin:                       # objective Garmin dailies; null when never synced
+  steps: 9432
+  resting_hr: 52
+  stress_avg: 31              # Garmin 0–100 stress, NOT the subjective 1–5 field
+  body_battery_high: 88
+  body_battery_low: 21
 ```
 
 ### academics/{course}/notes-and-deadlines.md — one per course; notes in body
@@ -119,3 +129,12 @@ plus a short freeform reflection.
 
 `insight` notes carry `week: "2026-W28"`; `moc` notes carry `domain`.
 Both are stubs until later phases fill them.
+
+## Change log
+
+- **2026-07-06 (Garmin integration, additive):** fitness workouts gained
+  `source` + `garmin_activity_id` (sync dedup); sleep gained `source` +
+  `sleep_score`, and Garmin syncs never overwrite manual sleep notes;
+  wellness gained an objective `garmin` block, and `mood`/`energy`/
+  `stress` became nullable so a sync can land before a subjective
+  check-in. Garmin data and subjective ratings are kept strictly apart.

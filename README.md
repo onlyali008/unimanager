@@ -28,7 +28,9 @@ npm run dev                  # http://localhost:3000
 | Variable | Purpose |
 | --- | --- |
 | `OBSIDIAN_VAULT_PATH` | Absolute path to your vault; folder structure is created on first run |
-| `FDC_API_KEY` | USDA FoodData Central key for nutrition search (Phase 1) |
+| `USDA_API_KEY` | USDA FoodData Central key for nutrition search + macro autofill |
+| `GARMIN_EMAIL` / `GARMIN_PASSWORD` | Garmin Connect login for the fitness/sleep/wellness sync (unofficial API; tokens cached in `.garmin/`; MFA accounts unsupported) |
+| `ANTHROPIC_API_KEY` | Claude API key for the Phase 3 assistant (unused until then) |
 
 ## Stack
 
@@ -37,10 +39,11 @@ gray-matter for frontmatter I/O · next-themes for dark mode.
 
 ## Roadmap
 
-- **Phase 0 — Foundation** (this): design system, vault structure +
+- **Phase 0 — Foundation** (done): design system, vault structure +
   typed fs layer, app shell with sidebar navigation.
-- **Phase 1 — Core tracking**: entry forms + dashboards per domain,
-  USDA FDC-powered nutrition logging, auto-created daily notes.
+- **Phase 1 — Core tracking** (this): entry forms + dashboards per
+  domain, USDA FDC-powered nutrition logging, auto-created daily notes,
+  Garmin Connect sync into fitness/sleep/wellness.
 - **Phase 2 — Schedule maker**: calendar from academic deadlines with
   conflict detection.
 - **Phase 3 — AI**: nightly Ollama tagging/embeddings, weekly insight

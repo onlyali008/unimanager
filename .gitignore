@@ -43,3 +43,6 @@ next-env.d.ts
 
 # claude worktrees
 /.claude/worktrees/
+
+# garmin session tokens
+/.garmin/

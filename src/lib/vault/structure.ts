@@ -27,18 +27,19 @@ tags: []
 
 # Semestra vault schema
 
-This vault is managed by the Semestra app. Every note is atomic (one
-day/month/course per file) and carries a locked YAML frontmatter schema
-per domain — do not add or rename frontmatter fields by hand.
+This vault is managed by the Semestra app; this file is app-managed and
+rewritten on schema changes — don't edit it by hand. Every note is atomic
+(one day/month/course per file) and carries a locked YAML frontmatter
+schema per domain — do not add or rename frontmatter fields by hand.
 
 | Folder | One note per | Key frontmatter fields |
 | --- | --- | --- |
 | nutrition/YYYY-MM-DD.md | day | meals[] (name, meal, portion_g, calories, protein_g, carbs_g, fat_g, fdc_id, source), totals |
-| fitness/YYYY-MM-DD.md | day | workouts[] (activity, category, duration_min, intensity 1-5, calories_burned), totals |
-| sleep/YYYY-MM-DD.md | wake-up day | bedtime, wake_time, duration_h, quality 1-5, interruptions, naps_min |
-| wellness/YYYY-MM-DD.md | day | mood, energy, stress (all 1-5), symptoms[] |
+| fitness/YYYY-MM-DD.md | day | workouts[] (activity, category, duration_min, intensity 1-5, calories_burned, source, garmin_activity_id), totals |
+| sleep/YYYY-MM-DD.md | wake-up day | bedtime, wake_time, duration_h, quality 1-5, interruptions, naps_min, source, sleep_score |
+| wellness/YYYY-MM-DD.md | day | mood, energy, stress (all 1-5, null until checked in), symptoms[], garmin { steps, resting_hr, stress_avg, body_battery_high/low } |
 | academics/{course}/notes-and-deadlines.md | course | course, course_name, term, credits, deadlines[] (title, due, kind, status, weight_pct) |
-| finances/YYYY-MM.md | month | currency, transactions[] (date, amount signed, category, description), totals |
+| finances/YYYY-MM.md | month | currency (CAD), transactions[] (date, amount signed, category, description), totals |
 | daily-notes/YYYY-MM-DD.md | day | date only — body holds wikilinks to that day's entries plus a reflection |
 | insights/YYYY-Www.md | week | week — written by the AI pipeline in a later phase |
 | moc/MOC-{domain}.md | domain | domain — index notes linking to key entries |
@@ -47,6 +48,11 @@ All notes share: \`type\`, \`tags\` (freeform, cross-domain, e.g.
 #exam-week), and \`created\`. Daily notes reference same-day entries with
 folder-qualified wikilinks like \`[[nutrition/2026-07-06|Nutrition]]\` —
 filenames repeat across folders, so unqualified links would be ambiguous.
+
+Schema change log: 2026-07-06 — additive Garmin fields (fitness
+source/garmin_activity_id, sleep source/sleep_score, wellness garmin
+block); wellness mood/energy/stress became nullable so a Garmin sync can
+exist before a subjective check-in. Garmin never overwrites manual data.
 `;
 
 function mocBody(domain: DomainSlug): string {
@@ -76,8 +82,11 @@ export async function ensureVaultStructure(): Promise<string> {
     }
   }
 
-  if (!(await noteExists("SCHEMA.md"))) {
-    await fs.writeFile(resolveInVault("SCHEMA.md"), SCHEMA_DOC, "utf8");
+  // App-managed doc: rewrite whenever the embedded schema text changes.
+  const schemaPath = resolveInVault("SCHEMA.md");
+  const current = await fs.readFile(schemaPath, "utf8").catch(() => null);
+  if (current !== SCHEMA_DOC) {
+    await fs.writeFile(schemaPath, SCHEMA_DOC, "utf8");
   }
 
   return getVaultPath();

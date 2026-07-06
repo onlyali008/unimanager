@@ -65,6 +65,10 @@ export interface WorkoutEntry {
   /** Perceived intensity, 1 (easy) to 5 (max effort). */
   intensity: number;
   calories_burned: number | null;
+  /** Added 2026-07-06 (Garmin integration): where this workout came from. */
+  source: "manual" | "garmin";
+  /** Garmin activity id for sync dedup; null for manual entries. */
+  garmin_activity_id: number | null;
 }
 
 export interface FitnessFrontmatter extends BaseFrontmatter {
@@ -88,16 +92,31 @@ export interface SleepFrontmatter extends BaseFrontmatter {
   quality: number;
   interruptions: number;
   naps_min: number;
+  /** Added 2026-07-06 (Garmin integration). */
+  source: "manual" | "garmin";
+  /** Garmin sleep score 0–100; null for manual entries. */
+  sleep_score: number | null;
+}
+
+/** Objective daily metrics pulled from Garmin; never mixed into the subjective 1–5 fields. */
+export interface GarminWellness {
+  steps: number | null;
+  resting_hr: number | null;
+  stress_avg: number | null;
+  body_battery_high: number | null;
+  body_battery_low: number | null;
 }
 
 export interface WellnessFrontmatter extends BaseFrontmatter {
   type: "wellness";
   date: string;
-  /** All 1–5, same scale as sleep quality. */
-  mood: number;
-  energy: number;
-  stress: number;
+  /** All 1–5, same scale as sleep quality. Null until you check in. */
+  mood: number | null;
+  energy: number | null;
+  stress: number | null;
   symptoms: string[];
+  /** Added 2026-07-06 (Garmin integration); null when never synced. */
+  garmin: GarminWellness | null;
 }
 
 export type DeadlineKind =
