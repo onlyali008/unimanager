@@ -53,4 +53,6 @@ gray-matter for frontmatter I/O · next-themes for dark mode.
   server; Capacitor Android thin client that connects to your PC — see
   [docs/packaging.md](docs/packaging.md).
 - **Phase 5 — Polish**: UI and code-quality pass.
-- **Phase 6 — Remote access**: Tailscale setup docs.
+- **Phase 6 — Remote access** (this): email + password + emailed-code
+  login gating the whole app, and Tailscale setup for phone/laptop
+  access — see [docs/remote-access.md](docs/remote-access.md).
