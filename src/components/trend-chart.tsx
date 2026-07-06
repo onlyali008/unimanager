@@ -44,6 +44,16 @@ export function TrendChart({
   const config: ChartConfig = { value: { label, color } };
   const monthDay = (d: string) => d.slice(5);
 
+  if (data.every((point) => point.value === null)) {
+    return (
+      <div className="flex h-56 w-full items-center justify-center rounded-lg border border-dashed">
+        <p className="text-sm text-muted-foreground">
+          Nothing here yet — the trend appears once you start logging.
+        </p>
+      </div>
+    );
+  }
+
   const axes = (
     <>
       <CartesianGrid vertical={false} strokeOpacity={0.35} />

@@ -34,6 +34,12 @@ export interface IndexSummary {
 
 const INDEX_DIR = path.join(process.cwd(), ".semestra");
 const INDEX_PATH = path.join(INDEX_DIR, "index.json");
+const META_PATH = path.join(INDEX_DIR, "index-meta.json");
+
+export interface IndexMeta {
+  updatedAt: string;
+  count: number;
+}
 
 function hashText(text: string): string {
   return createHash("sha256").update(text).digest("hex");
@@ -48,9 +54,24 @@ export async function loadIndex(): Promise<VaultIndex | null> {
   }
 }
 
+/** Cheap stats for UI hints — avoids parsing the full embeddings file. */
+export async function loadIndexMeta(): Promise<IndexMeta | null> {
+  try {
+    const raw = await fs.readFile(META_PATH, "utf8");
+    return JSON.parse(raw) as IndexMeta;
+  } catch {
+    return null;
+  }
+}
+
 async function saveIndex(index: VaultIndex): Promise<void> {
   await fs.mkdir(INDEX_DIR, { recursive: true });
   await fs.writeFile(INDEX_PATH, JSON.stringify(index), "utf8");
+  const meta: IndexMeta = {
+    updatedAt: index.updatedAt,
+    count: index.entries.length,
+  };
+  await fs.writeFile(META_PATH, JSON.stringify(meta), "utf8");
 }
 
 const TAG_SYSTEM = `You tag personal life-log notes. Reply with 1-2 short kebab-case tags capturing the note's notable theme (e.g. exam-week, low-energy, high-protein, overspending, long-run). Reply with ONLY the tags separated by commas — no explanations. If nothing is notable, reply "none".`;

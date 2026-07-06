@@ -87,9 +87,13 @@ async function syncSleep(
   summary: GarminSyncSummary,
 ): Promise<number | null> {
   const data = await client.getSleepData(toNoonDate(date));
+  // Resting HR can be present even for nights with no sleep record —
+  // pass it along for the wellness merge either way.
+  const restingHr =
+    typeof data?.restingHeartRate === "number" ? data.restingHeartRate : null;
   const dto = data?.dailySleepDTO;
   if (!dto || !dto.sleepTimeSeconds || dto.sleepTimeSeconds <= 0) {
-    return data?.dailySleepDTO?.id ? null : null;
+    return restingHr;
   }
 
   const score = dto.sleepScores?.overall?.value ?? null;
@@ -108,9 +112,7 @@ async function syncSleep(
   });
   if (written) summary.sleepNightsWritten += 1;
 
-  return typeof data.restingHeartRate === "number"
-    ? data.restingHeartRate
-    : null;
+  return restingHr;
 }
 
 interface DailySummary {

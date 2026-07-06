@@ -51,6 +51,11 @@ export async function POST(request: NextRequest) {
     );
   }
   turns = turns.slice(-MAX_TURNS);
+  // The Messages API requires the first turn to be a user turn; trimming
+  // an alternating history can leave an assistant turn in front.
+  while (turns.length > 0 && turns[0].role !== "user") {
+    turns.shift();
+  }
 
   const question = turns.at(-1)!.content;
   const retrieval = await retrieveContext(question);

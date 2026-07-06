@@ -99,11 +99,14 @@
         if (!url) return;
         if (!/^https?:\/\//.test(url)) url = "http://" + url;
         try {
-          const res = await fetch(url + "/", {
+          // no-cors: the Semestra server sends no CORS headers, so a normal
+          // fetch would be blocked even when the server is reachable. An
+          // opaque response resolving at all means the host answered.
+          await fetch(url + "/", {
             method: "HEAD",
+            mode: "no-cors",
             signal: AbortSignal.timeout(5000),
           });
-          if (!res.ok && res.status !== 405) throw new Error("HTTP " + res.status);
           localStorage.setItem("semestra-server-url", url);
           location.href = url;
         } catch {

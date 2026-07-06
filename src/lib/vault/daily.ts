@@ -22,13 +22,29 @@ export async function ensureDailyNote(dateISO: string): Promise<string> {
   return relPath;
 }
 
+// Serialize daily-note updates: concurrent entry writes for the same day
+// would otherwise race on read-modify-write and drop a wikilink.
+let dailyNoteQueue: Promise<unknown> = Promise.resolve();
+
 /**
  * Links a same-day entry from the daily note using a folder-qualified
  * wikilink (filenames repeat across domain folders). Idempotent.
  *
  * @param target vault-relative path without ".md", e.g. "nutrition/2026-07-06"
  */
-export async function linkEntryInDailyNote(
+export function linkEntryInDailyNote(
+  dateISO: string,
+  target: string,
+  label: string,
+): Promise<void> {
+  const task = dailyNoteQueue.then(() =>
+    linkEntrySerialized(dateISO, target, label),
+  );
+  dailyNoteQueue = task.catch(() => {});
+  return task;
+}
+
+async function linkEntrySerialized(
   dateISO: string,
   target: string,
   label: string,

@@ -33,12 +33,16 @@ function cosine(a: number[], b: number[]): number {
   return denom === 0 ? 0 : dot / denom;
 }
 
-function scoreEntry(entry: IndexEntry, similarity: number): number {
+function scoreEntry(
+  entry: IndexEntry,
+  similarity: number,
+  recentDates: Set<string>,
+): number {
   let score = similarity;
   // Insight notes are distilled knowledge — prefer them over raw logs.
   if (entry.type === "insight") score += 0.15;
   // Mild recency preference among otherwise similar notes.
-  if (entry.date && lastNDates(7).includes(entry.date)) score += 0.05;
+  if (entry.date && recentDates.has(entry.date)) score += 0.05;
   return score;
 }
 
@@ -93,10 +97,11 @@ export async function retrieveContext(query: string): Promise<RetrievalResult> {
     return recencyRetrieve();
   }
 
+  const recentDates = new Set(lastNDates(7));
   const ranked = index.entries
     .map((entry) => ({
       entry,
-      score: scoreEntry(entry, cosine(queryVector, entry.embedding)),
+      score: scoreEntry(entry, cosine(queryVector, entry.embedding), recentDates),
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, TOP_K)

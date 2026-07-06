@@ -64,11 +64,26 @@ function mocBody(domain: DomainSlug): string {
   return `# MOC — ${title}\n\nIndex of key ${domain} entries. Links will be curated here in a later phase.\n`;
 }
 
+let bootstrapped: Promise<string> | null = null;
+
 /**
  * Creates the vault folder structure, MOC stubs, and schema doc if they
- * don't exist yet. Idempotent — safe to call on every server render.
+ * don't exist yet. Memoized per process so hot paths (every overview
+ * render) don't repeat the filesystem bootstrap; restart the server to
+ * re-run it (e.g. after changing OBSIDIAN_VAULT_PATH).
  */
-export async function ensureVaultStructure(): Promise<string> {
+export function ensureVaultStructure(): Promise<string> {
+  if (!bootstrapped) {
+    bootstrapped = bootstrapVault().catch((error) => {
+      // Don't cache a failed bootstrap.
+      bootstrapped = null;
+      throw error;
+    });
+  }
+  return bootstrapped;
+}
+
+async function bootstrapVault(): Promise<string> {
   for (const folder of VAULT_FOLDERS) {
     await fs.mkdir(resolveInVault(folder), { recursive: true });
   }

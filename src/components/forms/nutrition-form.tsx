@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { scaleToPortion } from "@/lib/fdc";
 import { todayISO } from "@/lib/vault/dates";
 
 import { EntryDialog } from "./entry-dialog";
@@ -35,13 +36,14 @@ interface FdcResult {
 
 const MEAL_SLOTS = ["breakfast", "lunch", "dinner", "snack"] as const;
 
+/** Form-friendly wrapper around the shared per-100g → portion math. */
 function scale(per100g: FdcResult["per100g"], portion: number) {
-  const f = portion / 100;
+  const macros = scaleToPortion(per100g, portion);
   return {
-    calories: String(Math.round(per100g.calories * f)),
-    protein_g: String(Math.round(per100g.protein_g * f * 10) / 10),
-    carbs_g: String(Math.round(per100g.carbs_g * f * 10) / 10),
-    fat_g: String(Math.round(per100g.fat_g * f * 10) / 10),
+    calories: String(macros.calories),
+    protein_g: String(macros.protein_g),
+    carbs_g: String(macros.carbs_g),
+    fat_g: String(macros.fat_g),
   };
 }
 

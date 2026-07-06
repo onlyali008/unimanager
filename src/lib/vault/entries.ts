@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 
 import { linkEntryInDailyNote } from "./daily";
 import { lastNDates, monthOf, monthsCoveringLastNDays } from "./dates";
-import { listNotes, readNote, resolveInVault, writeNote } from "./fs";
+import { readNote, resolveInVault, writeNote } from "./fs";
 import type {
   AcademicsFrontmatter,
   CourseMeeting,
@@ -405,6 +405,3 @@ export async function getCourses(): Promise<AcademicsFrontmatter[]> {
   }
   return courses.sort((a, b) => a.course.localeCompare(b.course));
 }
-
-/** Most recent daily notes (for future use; keeps listNotes exercised). */
-export const listDailyNotes = () => listNotes("daily-notes");

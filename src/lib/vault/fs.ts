@@ -37,13 +37,14 @@ export async function readNote<T = Record<string, unknown>>(
   relPath: string,
 ): Promise<VaultNote<T> | null> {
   const absolute = resolveInVault(relPath);
-  let raw: string;
+  // The vault is hand-editable in Obsidian — treat unreadable files and
+  // malformed YAML frontmatter the same way: as a missing note.
+  let parsed: ReturnType<typeof matter>;
   try {
-    raw = await fs.readFile(absolute, "utf8");
+    parsed = matter(await fs.readFile(absolute, "utf8"));
   } catch {
     return null;
   }
-  const parsed = matter(raw);
   return {
     relPath: relPath.replaceAll("\\", "/"),
     frontmatter: parsed.data as T,
