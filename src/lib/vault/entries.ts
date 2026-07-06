@@ -291,6 +291,40 @@ export async function addCourseMeeting(
   return true;
 }
 
+/**
+ * Replaces (or deletes, when `meeting` is null) a class time by its index
+ * in the stored meetings array. Returns false when the course or index
+ * doesn't exist (e.g. a concurrent edit shifted things).
+ */
+export async function updateCourseMeeting(
+  course: string,
+  index: number,
+  meeting: CourseMeeting | null,
+): Promise<boolean> {
+  const slug = courseSlug(course);
+  const relPath = `academics/${slug}/notes-and-deadlines.md`;
+  const existing = await readNote<AcademicsFrontmatter>(relPath);
+  if (!existing) return false;
+  const meetings = [...(existing.frontmatter.meetings ?? [])];
+  if (index < 0 || index >= meetings.length) return false;
+  if (meeting) {
+    meetings[index] = meeting;
+  } else {
+    meetings.splice(index, 1);
+  }
+  meetings.sort(
+    (a, b) =>
+      WEEKDAY_ORDER[a.day] - WEEKDAY_ORDER[b.day] ||
+      a.start.localeCompare(b.start),
+  );
+  await writeNote(
+    relPath,
+    { ...existing.frontmatter, meetings },
+    existing.body,
+  );
+  return true;
+}
+
 const RECURRING_PATH = "schedule/recurring.md";
 
 export async function getRecurringItems(): Promise<RecurringItem[]> {
@@ -316,6 +350,33 @@ export async function addRecurringItem(item: RecurringItem): Promise<void> {
     { ...frontmatter },
     existing?.body ?? "# Recurring schedule\n\nManaged by Semestra.\n",
   );
+}
+
+/** Replace (or delete, when `item` is null) a recurring block by index. */
+export async function updateRecurringItem(
+  index: number,
+  item: RecurringItem | null,
+): Promise<boolean> {
+  const existing = await readNote<ScheduleFrontmatter>(RECURRING_PATH);
+  if (!existing) return false;
+  const items = [...(existing.frontmatter.items ?? [])];
+  if (index < 0 || index >= items.length) return false;
+  if (item) {
+    items[index] = item;
+  } else {
+    items.splice(index, 1);
+  }
+  items.sort(
+    (a, b) =>
+      WEEKDAY_ORDER[a.day] - WEEKDAY_ORDER[b.day] ||
+      a.start.localeCompare(b.start),
+  );
+  await writeNote(
+    RECURRING_PATH,
+    { ...existing.frontmatter, items },
+    existing.body,
+  );
+  return true;
 }
 
 export async function addDeadline(

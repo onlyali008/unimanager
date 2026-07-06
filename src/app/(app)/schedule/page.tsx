@@ -4,6 +4,7 @@ import { AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { ScheduleEntryButtons } from "@/components/forms/schedule-forms";
 import { PageHeader } from "@/components/page-header";
+import { BlockChip, DayTimeline } from "@/components/schedule-blocks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,37 +18,48 @@ import {
   buildWeeklyBlocks,
   findBlockConflicts,
   findDeadlinePileUps,
+  layoutDayBlocks,
   monthGrid,
   monthLabel,
   WEEKDAY_LABELS,
   WEEKDAYS,
+  weekdayOf,
   type DatedDeadline,
-  type WeeklyBlock,
 } from "@/lib/schedule";
-import { monthOf, todayISO } from "@/lib/vault/dates";
+import { monthOf, toISODate, todayISO } from "@/lib/vault/dates";
 import { getCourses, getRecurringItems } from "@/lib/vault/entries";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Schedule" };
 export const dynamic = "force-dynamic";
 
-const MODULE_CLASSES: Record<WeeklyBlock["module"], string> = {
-  academics: "bg-academics/10 text-academics",
-  fitness: "bg-fitness/10 text-fitness",
-  wellness: "bg-wellness/10 text-wellness",
-  other: "bg-muted text-muted-foreground",
-};
+function addDays(dateISO: string, delta: number): string {
+  const d = new Date(`${dateISO}T12:00:00`);
+  d.setDate(d.getDate() + delta);
+  return toISODate(d);
+}
+
+function dayLabel(dateISO: string): string {
+  return new Date(`${dateISO}T12:00:00`).toLocaleDateString("en-CA", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+}
 
 export default async function SchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string }>;
+  searchParams: Promise<{ month?: string; day?: string }>;
 }) {
   const params = await searchParams;
   const today = todayISO();
   const month = /^\d{4}-\d{2}$/.test(params.month ?? "")
     ? (params.month as string)
     : monthOf(today);
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(params.day ?? "")
+    ? (params.day as string)
+    : today;
 
   const [courses, recurring] = await Promise.all([
     getCourses(),
@@ -66,14 +78,21 @@ export default async function SchedulePage({
   const conflicts = findBlockConflicts(blocks);
   const conflicted = new Set(conflicts.flatMap((c) => [c.a, c.b]));
   const pileUps = findDeadlinePileUps(deadlines);
-
   const weeks = monthGrid(month);
+
+  const dayWeekday = weekdayOf(day);
+  const dayBlocks = layoutDayBlocks(blocks.filter((b) => b.day === dayWeekday));
+  const dayDeadlines = (deadlinesByDate.get(day) ?? []).filter(
+    (d) => d.status !== "done",
+  );
+  const now = new Date();
+  const nowMinutes = day === today ? now.getHours() * 60 + now.getMinutes() : null;
 
   return (
     <div className="mx-auto w-full max-w-5xl">
       <PageHeader
         title="Schedule"
-        description="Deadlines from your courses plus your weekly recurring blocks."
+        description="Deadlines from your courses plus your weekly recurring blocks — click any block to edit it."
       >
         <ScheduleEntryButtons courses={courses.map((c) => c.course)} />
       </PageHeader>
@@ -108,6 +127,54 @@ export default async function SchedulePage({
           </CardContent>
         </Card>
       ) : null}
+
+      <Card className="mb-4">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">
+            {dayLabel(day)}
+            {day === today ? (
+              <Badge variant="secondary" className="ml-2">
+                today
+              </Badge>
+            ) : null}
+          </CardTitle>
+          <div className="flex items-center gap-1">
+            <Button asChild variant="ghost" size="icon-sm">
+              <Link
+                href={`/schedule?day=${addDays(day, -1)}`}
+                aria-label="Previous day"
+              >
+                <ChevronLeft className="size-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/schedule">Today</Link>
+            </Button>
+            <Button asChild variant="ghost" size="icon-sm">
+              <Link
+                href={`/schedule?day=${addDays(day, 1)}`}
+                aria-label="Next day"
+              >
+                <ChevronRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {dayDeadlines.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {dayDeadlines.map((d, i) => (
+                <Badge key={i} variant="outline" className="bg-academics/10 text-academics">
+                  due: {d.course} · {d.title}
+                </Badge>
+              ))}
+            </div>
+          ) : null}
+          <div className="max-h-[28rem] overflow-y-auto pr-1">
+            <DayTimeline blocks={dayBlocks} nowMinutes={nowMinutes} />
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -148,10 +215,11 @@ export default async function SchedulePage({
               const due = deadlinesByDate.get(cell.date) ?? [];
               const open = due.filter((d) => d.status !== "done");
               return (
-                <div
+                <Link
                   key={cell.date}
+                  href={`/schedule?day=${cell.date}`}
                   className={cn(
-                    "min-h-24 bg-card p-1.5",
+                    "min-h-24 bg-card p-1.5 transition-colors hover:bg-accent/40",
                     !cell.inMonth && "bg-background",
                   )}
                 >
@@ -186,7 +254,7 @@ export default async function SchedulePage({
                       </p>
                     ) : null}
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
@@ -201,38 +269,27 @@ export default async function SchedulePage({
           {blocks.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No recurring blocks yet — add your class times and standing
-              commitments (gym, clubs…) to see your week and catch overlaps.
+              commitments (gym, reading, clubs…) to see your week and catch
+              overlaps.
             </p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
-              {WEEKDAYS.map((day) => {
-                const dayBlocks = blocks.filter((b) => b.day === day);
+              {WEEKDAYS.map((weekday) => {
+                const weekdayBlocks = blocks.filter((b) => b.day === weekday);
                 return (
-                  <div key={day} className="space-y-1.5">
+                  <div key={weekday} className="space-y-1.5">
                     <p className="text-xs font-medium text-muted-foreground">
-                      {WEEKDAY_LABELS[day]}
+                      {WEEKDAY_LABELS[weekday]}
                     </p>
-                    {dayBlocks.length === 0 ? (
+                    {weekdayBlocks.length === 0 ? (
                       <p className="text-xs text-muted-foreground/50">—</p>
                     ) : (
-                      dayBlocks.map((b, i) => (
-                        <div
+                      weekdayBlocks.map((b, i) => (
+                        <BlockChip
                           key={i}
-                          title={
-                            b.location ? `${b.title} @ ${b.location}` : b.title
-                          }
-                          className={cn(
-                            "rounded-md px-2 py-1.5 text-xs",
-                            MODULE_CLASSES[b.module],
-                            conflicted.has(b) &&
-                              "ring-2 ring-destructive/60",
-                          )}
-                        >
-                          <p className="truncate font-medium">{b.title}</p>
-                          <p className="font-mono text-[11px] opacity-80">
-                            {b.start}–{b.end}
-                          </p>
-                        </div>
+                          block={b}
+                          conflicted={conflicted.has(b)}
+                        />
                       ))
                     )}
                   </div>

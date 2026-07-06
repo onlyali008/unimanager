@@ -70,6 +70,8 @@ export const transactionPayload = z.object({
 
 const weekday = z.enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
 
+const blockIndex = z.number().int().min(0).max(500);
+
 export const schedulePayload = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("meeting"),
@@ -86,6 +88,33 @@ export const schedulePayload = z.discriminatedUnion("action", [
     day: weekday,
     start: clock,
     end: clock,
+  }),
+  z.object({
+    action: z.literal("update-meeting"),
+    course: z.string().min(1).max(60),
+    index: blockIndex,
+    day: weekday,
+    start: clock,
+    end: clock,
+    location: z.string().max(120).nullable(),
+  }),
+  z.object({
+    action: z.literal("delete-meeting"),
+    course: z.string().min(1).max(60),
+    index: blockIndex,
+  }),
+  z.object({
+    action: z.literal("update-recurring"),
+    index: blockIndex,
+    title: z.string().min(1).max(120),
+    module: z.enum(["fitness", "wellness", "academics", "other"]),
+    day: weekday,
+    start: clock,
+    end: clock,
+  }),
+  z.object({
+    action: z.literal("delete-recurring"),
+    index: blockIndex,
   }),
 ]);
 

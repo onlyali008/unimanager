@@ -25,6 +25,11 @@ export const WEEKDAY_LABELS: Record<Weekday, string> = {
   sun: "Sunday",
 };
 
+/** Where a block lives in the vault, so the UI can edit or delete it. */
+export type BlockSource =
+  | { kind: "meeting"; course: string; index: number }
+  | { kind: "recurring"; index: number };
+
 /** One weekly timed block, whatever its source. */
 export interface WeeklyBlock {
   day: Weekday;
@@ -34,6 +39,7 @@ export interface WeeklyBlock {
   /** Which module owns the block — drives its accent color. */
   module: "academics" | "fitness" | "wellness" | "other";
   location: string | null;
+  source: BlockSource;
 }
 
 export interface BlockConflict {
@@ -53,9 +59,57 @@ export interface DatedDeadline extends Deadline {
   course: string;
 }
 
-function minutes(clock: string): number {
+/** "HH:MM" → minutes since midnight. */
+export function minutesOf(clock: string): number {
   const [h, m] = clock.split(":").map(Number);
   return h * 60 + m;
+}
+
+const minutes = minutesOf;
+
+/** A block laid out on the 00:00–23:59 day timeline. */
+export interface DayBlock extends WeeklyBlock {
+  /** Which parallel column this block occupies when times overlap. */
+  lane: number;
+  /** Total columns in this block's overlap group. */
+  lanes: number;
+}
+
+/**
+ * Greedy interval layout: overlapping blocks get side-by-side lanes so
+ * the day planner can render them without stacking.
+ */
+export function layoutDayBlocks(dayBlocks: WeeklyBlock[]): DayBlock[] {
+  const sorted = [...dayBlocks].sort(
+    (a, b) => minutes(a.start) - minutes(b.start) || minutes(b.end) - minutes(a.end),
+  );
+  const placed: DayBlock[] = [];
+  let group: DayBlock[] = [];
+  let groupEnd = -1;
+  let laneEnds: number[] = [];
+
+  const closeGroup = () => {
+    for (const b of group) b.lanes = laneEnds.length;
+    group = [];
+    laneEnds = [];
+  };
+
+  for (const block of sorted) {
+    const start = minutes(block.start);
+    if (start >= groupEnd && group.length > 0) closeGroup();
+    let lane = laneEnds.findIndex((end) => end <= start);
+    if (lane === -1) {
+      lane = laneEnds.length;
+      laneEnds.push(0);
+    }
+    laneEnds[lane] = minutes(block.end);
+    groupEnd = Math.max(groupEnd, minutes(block.end));
+    const placedBlock: DayBlock = { ...block, lane, lanes: 1 };
+    group.push(placedBlock);
+    placed.push(placedBlock);
+  }
+  closeGroup();
+  return placed;
 }
 
 export function buildWeeklyBlocks(
@@ -64,7 +118,7 @@ export function buildWeeklyBlocks(
 ): WeeklyBlock[] {
   const blocks: WeeklyBlock[] = [];
   for (const course of courses) {
-    for (const meeting of course.meetings ?? []) {
+    (course.meetings ?? []).forEach((meeting, index) => {
       blocks.push({
         day: meeting.day,
         start: meeting.start,
@@ -72,10 +126,11 @@ export function buildWeeklyBlocks(
         title: course.course,
         module: "academics",
         location: meeting.location,
+        source: { kind: "meeting", course: course.course, index },
       });
-    }
+    });
   }
-  for (const item of recurring) {
+  recurring.forEach((item, index) => {
     blocks.push({
       day: item.day,
       start: item.start,
@@ -83,8 +138,9 @@ export function buildWeeklyBlocks(
       title: item.title,
       module: item.module,
       location: null,
+      source: { kind: "recurring", index },
     });
-  }
+  });
   return blocks.sort(
     (a, b) =>
       WEEKDAYS.indexOf(a.day) - WEEKDAYS.indexOf(b.day) ||
