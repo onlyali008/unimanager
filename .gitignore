@@ -46,3 +46,6 @@ next-env.d.ts
 
 # garmin session tokens
 /.garmin/
+
+# local AI embeddings index
+/.semestra/

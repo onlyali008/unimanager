@@ -44,10 +44,11 @@ gray-matter for frontmatter I/O · next-themes for dark mode.
 - **Phase 1 — Core tracking** (this): entry forms + dashboards per
   domain, USDA FDC-powered nutrition logging, auto-created daily notes,
   Garmin Connect sync into fitness/sleep/wellness.
-- **Phase 2 — Schedule maker**: calendar from academic deadlines with
-  conflict detection.
-- **Phase 3 — AI**: nightly Ollama tagging/embeddings, weekly insight
-  notes, Claude-powered assistant with vault retrieval.
+- **Phase 2 — Schedule maker** (done): calendar from academic deadlines
+  with conflict detection.
+- **Phase 3 — AI** (this): nightly Ollama tagging/embeddings, weekly
+  insight notes, Claude-powered assistant with vault retrieval — see
+  [docs/ai-jobs.md](docs/ai-jobs.md).
 - **Phase 4 — Packaging**: Tauri (desktop) and Capacitor (mobile).
 - **Phase 5 — Polish**: UI and code-quality pass.
 - **Phase 6 — Remote access**: Tailscale setup docs.

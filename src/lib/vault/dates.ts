@@ -32,3 +32,17 @@ export function monthsCoveringLastNDays(n: number): string[] {
   const months = new Set<string>(lastNDates(n).map(monthOf));
   return [...months].sort();
 }
+
+/** ISO week id for a date, e.g. "2026-W28". */
+export function isoWeekOf(dateISO: string): string {
+  const d = new Date(`${dateISO}T12:00:00Z`);
+  // Shift to the Thursday of this week — its year is the ISO year.
+  const day = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - day + 3);
+  const isoYear = d.getUTCFullYear();
+  const yearStart = new Date(Date.UTC(isoYear, 0, 1));
+  const week = Math.ceil(
+    ((d.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7,
+  );
+  return `${isoYear}-W${String(week).padStart(2, "0")}`;
+}
