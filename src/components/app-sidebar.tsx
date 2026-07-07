@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, LayoutDashboard, Sparkles } from "lucide-react";
+import { CalendarDays, LayoutDashboard, Library, Sparkles } from "lucide-react";
 
 import { DOMAINS } from "@/lib/domains";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,8 @@ const planItems = [
   { href: "/schedule", label: "Schedule", icon: CalendarDays },
   { href: "/assistant", label: "Assistant", icon: Sparkles },
 ];
+
+const archiveItems = [{ href: "/library", label: "Library", icon: Library }];
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -110,6 +112,31 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {planItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.href)}
+                    tooltip={item.label}
+                  >
+                    <Link href={item.href}>
+                      <item.icon className="size-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="font-mono text-[0.65rem] font-semibold uppercase tracking-[0.2em]">
+            <span className="mr-1.5 text-sidebar-primary">§</span>
+            Archive
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {archiveItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild

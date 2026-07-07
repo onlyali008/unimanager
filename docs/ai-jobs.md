@@ -10,8 +10,10 @@ up (`npm run dev`).
 | --- | --- | --- |
 | Nightly index | `POST /api/ai/index` | Tags new/changed notes (1–2 kebab-case tags merged into frontmatter, never removed) and updates the incremental embeddings index at `.semestra/index.json` — one chunk per note, frontmatter fields serialized as retrievable text. |
 | Weekly insight | `POST /api/ai/insights` | Digests the last 7 days across all domains and writes `insights/YYYY-Www.md` with cross-domain patterns (re-running the same week overwrites it). |
+| Daily knowledge pull | `POST /api/knowledge/pull` | Pulls your configured Wikipedia subjects, URLs, and RSS/Atom feeds into `knowledge/` and re-embeds the knowledge index (see `docs/knowledge-base.md`). |
 
-Both are also available as buttons on the Assistant page.
+The index/insight jobs are buttons on the Assistant page; the knowledge jobs
+(Ingest inbox / Pull sources / Re-index) are on the Library page.
 
 ## Task Scheduler setup
 
@@ -25,6 +27,10 @@ schtasks /Create /TN "Semestra nightly index" /SC DAILY /ST 02:30 `
 # Weekly on Sunday at 20:00
 schtasks /Create /TN "Semestra weekly insight" /SC WEEKLY /D SUN /ST 20:00 `
   /TR "curl.exe -s -X POST http://localhost:3000/api/ai/insights"
+
+# Daily knowledge pull at 03:00
+schtasks /Create /TN "Semestra knowledge pull" /SC DAILY /ST 03:00 `
+  /TR "curl.exe -s -X POST http://localhost:3000/api/knowledge/pull"
 ```
 
 Remove with `schtasks /Delete /TN "<name>" /F`.

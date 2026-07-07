@@ -17,7 +17,13 @@ Each user message may include a <vault_context> block with notes retrieved for t
 - Base answers on it and cite concrete numbers and dates from it.
 - Prefer patterns from insight notes over raw logs when both are present.
 - If the context doesn't contain what's needed, say so plainly and suggest what to log or which page to check — never invent data.
-- Be a calm, concise study companion: direct answers first, short practical suggestions, no lectures, no generic wellness platitudes.`;
+
+A message may also include a <reference_knowledge> block: passages from books, articles, and wikis the user has added to their knowledge base. This is external reference material, NOT facts about the user's life:
+- Use it to explain, teach, or answer knowledge questions, and cite the source by its title.
+- Never present reference material as something the user did or logged; keep it distinct from <vault_context>.
+- When the two combine (e.g. applying a book's idea to the user's own data), make clear which is which.
+
+Be a calm, concise study companion: direct answers first, short practical suggestions, no lectures, no generic wellness platitudes.`;
 
 interface ChatTurn {
   role: "user" | "assistant";
@@ -65,12 +71,21 @@ export async function POST(request: NextRequest) {
           .map((s) => `--- ${s.relPath} ---\n${s.text}`)
           .join("\n\n")}\n</vault_context>\n\n`
       : "";
+  const knowledgeBlock =
+    retrieval.knowledge.length > 0
+      ? `<reference_knowledge>\n${retrieval.knowledge
+          .map(
+            (k) =>
+              `--- ${k.title} (${k.source}${k.url ? `, ${k.url}` : ""}) ---\n${k.text}`,
+          )
+          .join("\n\n")}\n</reference_knowledge>\n\n`
+      : "";
 
   const messages: Anthropic.MessageParam[] = turns.map((t, i) =>
     i === turns.length - 1
       ? {
           role: "user",
-          content: `${contextBlock}Today is ${todayISO()}.\n\n${t.content}`,
+          content: `${contextBlock}${knowledgeBlock}Today is ${todayISO()}.\n\n${t.content}`,
         }
       : { role: t.role, content: t.content },
   );
@@ -113,7 +128,10 @@ export async function POST(request: NextRequest) {
         "Cache-Control": "no-store",
         "X-Semestra-Sources": encodeURIComponent(
           JSON.stringify(
-            retrieval.snippets.map((s) => s.relPath).slice(0, 8),
+            [
+              ...retrieval.snippets.map((s) => s.relPath),
+              ...retrieval.knowledge.map((k) => k.ref),
+            ].slice(0, 12),
           ),
         ),
         "X-Semestra-Retrieval": retrieval.mode,

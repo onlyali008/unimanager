@@ -1,6 +1,7 @@
 import { lastNDates } from "@/lib/vault/dates";
 
 import { loadIndex, type IndexEntry } from "./indexer";
+import { retrieveKnowledge, type KnowledgeSnippet } from "./knowledge/retrieve";
 import { collectNotes } from "./notes";
 import { ollamaAvailable, ollamaEmbed } from "./ollama";
 
@@ -13,6 +14,8 @@ export interface RetrievedSnippet {
 
 export interface RetrievalResult {
   snippets: RetrievedSnippet[];
+  /** Reference-knowledge passages (books/wikis/articles), gated by relevance. */
+  knowledge: KnowledgeSnippet[];
   /** "semantic" via the embeddings index, or "recency" fallback. */
   mode: "semantic" | "recency";
 }
@@ -58,8 +61,8 @@ function capByBudget(snippets: RetrievedSnippet[]): RetrievedSnippet[] {
   return result;
 }
 
-/** Recency fallback when the embeddings index or Ollama is unavailable. */
-async function recencyRetrieve(): Promise<RetrievalResult> {
+/** Recency digest of personal notes when semantic search isn't available. */
+async function recencyPersonal(): Promise<RetrievedSnippet[]> {
   const notes = await collectNotes();
   const recentDates = new Set(lastNDates(7));
   const insights = notes
@@ -70,35 +73,22 @@ async function recencyRetrieve(): Promise<RetrievalResult> {
     .filter((n) => n.date !== null && recentDates.has(n.date))
     .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""))
     .slice(0, 10);
-  const snippets = [...insights, ...recent].map((n) => ({
-    relPath: n.relPath,
-    type: n.type,
-    date: n.date,
-    text: n.text,
-  }));
-  return { snippets: capByBudget(snippets), mode: "recency" };
+  return capByBudget(
+    [...insights, ...recent].map((n) => ({
+      relPath: n.relPath,
+      type: n.type,
+      date: n.date,
+      text: n.text,
+    })),
+  );
 }
 
-/**
- * Retrieves vault context for an assistant question: semantic search over
- * the local embeddings index (insight notes boosted), degrading to a
- * recency digest when the index or Ollama isn't available.
- */
-export async function retrieveContext(query: string): Promise<RetrievalResult> {
-  const index = await loadIndex();
-  if (!index || index.entries.length === 0 || !(await ollamaAvailable())) {
-    return recencyRetrieve();
-  }
-
-  let queryVector: number[];
-  try {
-    [queryVector] = await ollamaEmbed([query], 20_000);
-  } catch {
-    return recencyRetrieve();
-  }
-
+function semanticPersonal(
+  entries: IndexEntry[],
+  queryVector: number[],
+): RetrievedSnippet[] {
   const recentDates = new Set(lastNDates(7));
-  const ranked = index.entries
+  const ranked = entries
     .map((entry) => ({
       entry,
       score: scoreEntry(entry, cosine(queryVector, entry.embedding), recentDates),
@@ -111,6 +101,39 @@ export async function retrieveContext(query: string): Promise<RetrievalResult> {
       date: entry.date,
       text: entry.text,
     }));
+  return capByBudget(ranked);
+}
 
-  return { snippets: capByBudget(ranked), mode: "semantic" };
+/**
+ * Retrieves context for an assistant question. Embeds the query once and
+ * uses it for two independent sources: semantic search over the personal
+ * embeddings index (with a recency fallback), and relevance-gated search
+ * over the separate knowledge base. Either can be empty; knowledge works
+ * even before any personal note is indexed.
+ */
+export async function retrieveContext(query: string): Promise<RetrievalResult> {
+  const ollamaUp = await ollamaAvailable();
+  let queryVector: number[] | null = null;
+  if (ollamaUp) {
+    try {
+      [queryVector] = await ollamaEmbed([query], 20_000);
+    } catch {
+      queryVector = null;
+    }
+  }
+
+  const index = await loadIndex();
+  let snippets: RetrievedSnippet[];
+  let mode: RetrievalResult["mode"];
+  if (index && index.entries.length > 0 && queryVector) {
+    snippets = semanticPersonal(index.entries, queryVector);
+    mode = "semantic";
+  } else {
+    snippets = await recencyPersonal();
+    mode = "recency";
+  }
+
+  const knowledge = queryVector ? await retrieveKnowledge(queryVector) : [];
+
+  return { snippets, knowledge, mode };
 }

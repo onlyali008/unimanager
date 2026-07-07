@@ -13,7 +13,13 @@ export type DomainSlug =
   | "academics"
   | "finances";
 
-export type NoteType = DomainSlug | "daily" | "insight" | "moc" | "schedule";
+export type NoteType =
+  | DomainSlug
+  | "daily"
+  | "insight"
+  | "moc"
+  | "schedule"
+  | "knowledge";
 
 /** Fields shared by every note in the vault. */
 export interface BaseFrontmatter {
@@ -202,6 +208,26 @@ export interface InsightFrontmatter extends BaseFrontmatter {
 export interface MocFrontmatter extends BaseFrontmatter {
   type: "moc";
   domain: DomainSlug;
+}
+
+/**
+ * Added 2026-07-07 (Phase 7): absorbed reference material for the AI
+ * knowledge base — one note per book/article, full cleaned text in the
+ * body, chunked at index time. Never mixed with the personal domains.
+ */
+export interface KnowledgeFrontmatter extends BaseFrontmatter {
+  type: "knowledge";
+  source: "book" | "wiki" | "article";
+  title: string;
+  author: string | null;
+  /** Original URL for wiki/article sources; null for absorbed books. */
+  url: string | null;
+  /** Subject bucket for subject-based wiki gathering; null otherwise. */
+  subject: string | null;
+  /** ISO date the material was absorbed. */
+  added: string;
+  /** sha256 of the cleaned body — drives incremental re-index and dedup. */
+  hash: string;
 }
 
 /** A weekly recurring block owned by one of the tracking modules. */

@@ -19,6 +19,12 @@ export const VAULT_FOLDERS = [
   "insights",
   "moc",
   "schedule",
+  // Phase 7 — knowledge base (absorbed reference material).
+  "knowledge",
+  "knowledge/inbox",
+  "knowledge/books",
+  "knowledge/wikis",
+  "knowledge/reference",
 ] as const;
 
 const SCHEMA_DOC = `---
@@ -45,6 +51,7 @@ schema per domain — do not add or rename frontmatter fields by hand.
 | daily-notes/YYYY-MM-DD.md | day | date only — body holds wikilinks to that day's entries plus a reflection |
 | insights/YYYY-Www.md | week | week — written by the AI pipeline in a later phase |
 | moc/MOC-{domain}.md | domain | domain — index notes linking to key entries |
+| knowledge/{books,wikis,reference}/*.md | book/article | source, title, author, url, subject, added, hash — absorbed reference material for the AI knowledge base; body holds cleaned text, chunked at index time. \`knowledge/inbox/\` is a drop folder for PDF/EPUB/txt/md to absorb. |
 
 All notes share: \`type\`, \`tags\` (freeform, cross-domain, e.g.
 #exam-week), and \`created\`. Daily notes reference same-day entries with
@@ -57,6 +64,9 @@ block); wellness mood/energy/stress became nullable so a Garmin sync can
 exist before a subjective check-in. Garmin never overwrites manual data.
 2026-07-06 (Phase 2) — additive meetings[] on academics courses; new
 schedule/ folder with recurring.md for weekly cross-module blocks.
+2026-07-07 (Phase 7) — new knowledge/ tree (inbox, books, wikis,
+reference) with the additive "knowledge" note type for the AI knowledge
+base; separate from the locked personal domains.
 `;
 
 function mocBody(domain: DomainSlug): string {
