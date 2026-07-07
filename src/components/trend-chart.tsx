@@ -46,9 +46,12 @@ export function TrendChart({
 
   if (data.every((point) => point.value === null)) {
     return (
-      <div className="flex h-56 w-full items-center justify-center rounded-lg border border-dashed">
-        <p className="text-sm text-muted-foreground">
-          Nothing here yet — the trend appears once you start logging.
+      <div className="flex h-56 w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-border bg-[repeating-linear-gradient(135deg,transparent,transparent_9px,var(--muted)_9px,var(--muted)_10px)] text-center">
+        <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          No Records On File
+        </p>
+        <p className="max-w-xs text-sm text-muted-foreground">
+          The trend appears once you start logging.
         </p>
       </div>
     );
@@ -78,7 +81,7 @@ export function TrendChart({
           <Bar
             dataKey="value"
             fill="var(--color-value)"
-            radius={[4, 4, 0, 0]}
+            radius={[0, 0, 0, 0]}
             maxBarSize={16}
           />
         </BarChart>

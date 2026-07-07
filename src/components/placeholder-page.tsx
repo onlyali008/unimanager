@@ -61,7 +61,7 @@ export function PlaceholderPage({
           <ul className="space-y-2 text-sm text-muted-foreground">
             {upcoming.map((feature) => (
               <li key={feature} className="flex gap-2">
-                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-current opacity-40" />
+                <span className="mt-1.5 size-1.5 shrink-0 bg-current opacity-40" />
                 {feature}
               </li>
             ))}

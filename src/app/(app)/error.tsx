@@ -35,7 +35,10 @@ export default function ErrorBoundary({
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="rounded-md bg-muted p-3 font-mono text-xs break-all">
+          <p className="label-mono">
+            System Fault{error.digest ? ` // ${error.digest}` : ""}
+          </p>
+          <p className="border-l-2 border-destructive bg-muted p-3 font-mono text-xs break-all">
             {error.message || "Unknown error"}
           </p>
           <Button onClick={reset}>
