@@ -6,28 +6,32 @@ CSS-first syntax on top of shadcn/ui. Single source of truth:
 `src/app/globals.css`. **Never hardcode colors, radii, or font families in
 components — always go through a token utility.**
 
-## Personality
+## Personality — "Editorial Brutalist"
 
-Calm, focused, organized — a study companion for a university student. It
-should lower stress, not gamify. Generous whitespace, soft contrast
-surfaces, one quiet accent per domain, no loud gradients or badges
-screaming for attention.
+A modern-brutalist study desk. Raw structure and confident type, but
+refined — rules and whitespace do the work, not heavy boxes. Sharp
+corners, high contrast, mono for data, one acid-lime marker. It should
+read like a well-set magazine, not a neo-brutalist template: editorial,
+fast, and deliberately *not* generic. No soft shadows, no gradients, no
+rounded chrome.
 
 ## Color
 
-### Neutrals ("paper & ink")
+### Neutrals ("bone & ink")
 
-Cool slate ramp (oklch, hue ≈ 250–265, low chroma). Light mode: near-white
-slate background `--background`, white cards, slate-900 ink. Dark mode:
-deep navy-slate `oklch(0.16 0.02 265)` — never pure black — with lifted
-cards and low-opacity borders.
+Warm low-chroma ramp (oklch, hue ≈ 72–86). Light mode: warm bone paper
+`--background`, slightly lighter bone cards, graphite ink `--foreground`.
+Dark mode: warm near-black stock (never pure black), lifted cards, and
+low-opacity hairline borders. Borders are kept **light** on purpose so
+rules read as lines, not cages.
 
-### Primary
+### Primary — acid lime
 
-Desaturated indigo (`--primary`, hue 272) — the "focus" color. Used for
-the wordmark block, active states, rings, and primary buttons. Hover
-surfaces (`--accent`) are an indigo-tinted wash of the background, so
-interaction always feels like the same family.
+A single accent, `--primary` (oklch hue ≈ 121, high chroma). Ink text
+always sits on top of it (`--primary-foreground`). Use it as a **marker**,
+not wallpaper: the logo block, the active-nav inset bar, primary CTA
+buttons, focus rings, text selection, and the `.mark` highlighter swipe
+behind display type. One or two lime moments per view — no more.
 
 ### Domain accents
 
@@ -56,34 +60,47 @@ Rules:
 
 ## Typography
 
-- **UI/body**: Geist Sans (`font-sans`) — everything by default.
-- **Headings**: Lora serif (`font-heading`) — `h1`–`h3` get it via base
-  styles; it gives the quiet "notebook" voice. Don't use it below
-  card-title size.
-- **Numbers/paths**: Geist Mono (`font-mono`) for vault paths, dates in
-  tables, and stat values where alignment matters.
-- Scale: page title `text-2xl font-semibold tracking-tight`, card title
-  `text-base`, body `text-sm`, captions `text-xs text-muted-foreground`.
+- **UI/body + headings**: Bricolage Grotesque (`font-sans`, and
+  `font-heading` aliases it). One grotesk with real character carries the
+  whole app — body at 400/500, mastheads at 700/800 with tight negative
+  tracking (`h1` ≈ `-0.03em`). Chosen specifically to stay off the
+  generic-Inter shelf.
+- **Numbers/labels/paths**: IBM Plex Mono (`font-mono`) with tabular +
+  slashed-zero figures — vault paths, dates, mono micro-labels
+  (`.label-mono`, uppercase wide tracking), stat sublines, table figures.
+- Big hero numerals (stat values) use the grotesk (`font-heading
+  font-extrabold tabular-nums`); small inline data uses mono.
+- Scale: page title `text-4xl sm:text-5xl font-extrabold`, stat value
+  `text-3xl`, body `text-sm`, captions `label-mono` or
+  `text-xs text-muted-foreground`.
 
 ## Spacing, radius, elevation
 
-- 4px spacing base (Tailwind default). Page gutter `p-4 md:p-6 lg:p-8`,
-  card grids `gap-4`, content max-width `max-w-5xl` (forms `max-w-3xl`),
-  centered.
-- Radius: `--radius: 0.625rem`; cards/chips `rounded-xl`/`rounded-lg`.
-- Elevation: borders over shadows. Hover = border tint or accent wash,
-  not a bigger shadow.
+- 4px spacing base. Page gutter `p-4 md:p-6 lg:p-8`, content max-width
+  `max-w-5xl` (forms `max-w-3xl`), centered.
+- Radius: `--radius: 0` — **everything is sharp.** All `rounded-*`
+  utilities resolve to 0 via the `@theme` block; don't fight it.
+- Elevation: **flat.** Borders and rules over shadows; cards are a light
+  hairline border, no default shadow. `.shadow-hard`/`.shadow-hard-sm`
+  (hard ink offset) exist only for deliberate hover lifts. Section breaks
+  use rules: `.rule-strong` (2px ink) under mastheads, `bg-border`
+  hairlines between list rows.
 
 ## Component patterns
 
-- **Sidebar**: shadcn sidebar, `collapsible="icon"`, groups **Track**
-  (six domains, icons tinted with domain color) and **Plan**
-  (Schedule, Assistant). Active item = sidebar-accent wash.
-- **Page layout**: every page starts with `<PageHeader>` (serif title +
-  one-line muted description). One idea per card.
-- **Stat cards** (Phase 1): label `text-xs text-muted-foreground`, value
-  `text-2xl font-semibold font-mono`, optional domain icon chip
-  (`bg-{domain}/10 text-{domain}`).
+- **Sidebar**: shadcn sidebar, `collapsible="icon"`, graphite drawer in
+  both themes. Groups **Track** (six domains, icons in domain color +
+  mono index) / **Plan** / **Archive**. Active item = sidebar-accent wash
+  **plus a lime inset marker bar** (`inset 3px 0 0 sidebar-primary`).
+- **Page layout**: every page starts with `<PageHeader>` — a masthead: a
+  mono eyebrow (lime square + `label-mono`), a big extrabold grotesk
+  title, optional muted description, and a `.rule-strong` divider.
+- **Overview**: an editorial contents *list*, not a card grid — ghosted
+  index numeral, domain icon, section name + description, mono count +
+  arrow; hover shifts padding and lights the row.
+- **Stat cards**: light-bordered tile with a 3px domain-colored **top**
+  rule (not a left slab), `label-mono` label, oversized grotesk value,
+  mono subline.
 - **Forms** (Phase 1): single column, labels above inputs, `max-w-3xl`,
   one primary button per view; validation messages in `--destructive`.
 - **Charts** (Phase 1): recharts, stroke = domain token via

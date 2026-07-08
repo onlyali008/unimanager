@@ -46,9 +46,9 @@ export function TrendChart({
 
   if (data.every((point) => point.value === null)) {
     return (
-      <div className="flex h-56 w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-border bg-[repeating-linear-gradient(135deg,transparent,transparent_9px,var(--muted)_9px,var(--muted)_10px)] text-center">
-        <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          No Records On File
+      <div className="flex h-56 w-full flex-col items-center justify-center gap-2 border border-dashed border-border bg-[repeating-linear-gradient(135deg,transparent,transparent_9px,var(--muted)_9px,var(--muted)_10px)] text-center">
+        <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Nothing logged yet
         </p>
         <p className="max-w-xs text-sm text-muted-foreground">
           The trend appears once you start logging.

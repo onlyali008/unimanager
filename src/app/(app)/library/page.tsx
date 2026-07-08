@@ -126,9 +126,9 @@ export default async function LibraryPage() {
       </div>
 
       {docs.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border py-16 text-center">
-          <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            No Records On File
+        <div className="flex flex-col items-center justify-center gap-2 border border-dashed border-border py-16 text-center">
+          <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Library is empty
           </p>
           <p className="max-w-sm text-sm text-muted-foreground">
             Drop a document into{" "}

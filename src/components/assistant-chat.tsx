@@ -1,12 +1,20 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, RefreshCw, Send, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
+import type { ModelOption } from "@/lib/ai/providers";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -16,15 +24,64 @@ interface ChatMessage {
   sources?: string[];
 }
 
+const MODEL_STORAGE_KEY = "semestra:chat-model";
+
+const STARTERS = [
+  "How did I sleep during exam weeks?",
+  "Where did my money go this month?",
+  "What should I focus on this week?",
+];
+
 export function AssistantChat({
-  anthropicConfigured,
+  models,
+  defaultModel,
+  anyConfigured,
 }: {
-  anthropicConfigured: boolean;
+  models: ModelOption[];
+  defaultModel: string;
+  anyConfigured: boolean;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [model, setModel] = useState(defaultModel);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Restore a previously-chosen model if it's still available. Runs after
+  // hydration on purpose — reading localStorage during render would mismatch
+  // the server-rendered default.
+  useEffect(() => {
+    const saved = localStorage.getItem(MODEL_STORAGE_KEY);
+    if (saved && models.some((m) => m.id === saved && m.configured)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setModel(saved);
+    }
+  }, [models]);
+
+  function chooseModel(id: string) {
+    setModel(id);
+    localStorage.setItem(MODEL_STORAGE_KEY, id);
+  }
+
+  const selected = models.find((m) => m.id === model);
+
+  // Group models by provider, preserving registry order.
+  const groups = useMemo(() => {
+    const order: string[] = [];
+    const byProvider = new Map<string, ModelOption[]>();
+    for (const m of models) {
+      if (!byProvider.has(m.provider)) {
+        byProvider.set(m.provider, []);
+        order.push(m.provider);
+      }
+      byProvider.get(m.provider)!.push(m);
+    }
+    return order.map((p) => ({
+      provider: p,
+      label: byProvider.get(p)![0].providerLabel,
+      items: byProvider.get(p)!,
+    }));
+  }, [models]);
 
   function scrollDown() {
     requestAnimationFrame(() => {
@@ -32,11 +89,13 @@ export function AssistantChat({
     });
   }
 
-  async function send() {
-    const question = input.trim();
+  async function send(text?: string) {
+    const question = (text ?? input).trim();
     if (!question || busy) return;
-    if (!anthropicConfigured) {
-      toast.info("Add ANTHROPIC_API_KEY to .env.local and restart the dev server.");
+    if (!selected?.configured) {
+      toast.info(
+        `Add ${selected?.envKey ?? "an API key"} to .env.local and restart to use ${selected?.label ?? "this model"}.`,
+      );
       return;
     }
 
@@ -51,6 +110,7 @@ export function AssistantChat({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          model,
           messages: history.map(({ role, content }) => ({ role, content })),
         }),
       });
@@ -69,10 +129,7 @@ export function AssistantChat({
         sources = [];
       }
 
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "", sources },
-      ]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "", sources }]);
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -104,76 +161,185 @@ export function AssistantChat({
   }
 
   return (
-    <Card className="flex h-[60vh] flex-col">
-      <CardContent className="flex min-h-0 flex-1 flex-col gap-3 p-4">
-        <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-          {messages.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
-              <Sparkles className="size-5" />
-              <p className="max-w-sm">
-                Ask about your own data — &ldquo;How did I sleep during exam
-                weeks?&rdquo;, &ldquo;Where did my money go this month?&rdquo;,
-                &ldquo;What should I focus on this week?&rdquo;
+    <div className="flex h-[62vh] flex-col overflow-hidden rounded-[18px] border border-border bg-card shadow-sm">
+      {/* Header — Sem's identity + model picker */}
+      <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <Sparkles className="size-4.5" />
+        </span>
+        <div className="min-w-0 flex-1 leading-tight">
+          <p className="font-heading text-sm font-bold tracking-tight">Sem</p>
+          <p className="truncate text-xs text-muted-foreground">
+            Your study companion, grounded in your vault
+          </p>
+        </div>
+        <Select value={model} onValueChange={chooseModel}>
+          <SelectTrigger
+            size="sm"
+            className="w-[9.5rem] rounded-full font-mono text-xs"
+            aria-label="Choose model"
+          >
+            <SelectValue placeholder="Model">
+              {selected?.label ?? "Model"}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent className="max-h-80">
+            {groups.map((g) => (
+              <SelectGroup key={g.provider}>
+                <SelectLabel className="flex items-center gap-1.5">
+                  {g.label}
+                  {!g.items[0].configured ? (
+                    <span className="font-mono text-[0.6rem] font-normal tracking-wide text-muted-foreground/70">
+                      · add {g.items[0].envKey}
+                    </span>
+                  ) : null}
+                </SelectLabel>
+                {g.items.map((m) => (
+                  <SelectItem
+                    key={m.id}
+                    value={m.id}
+                    disabled={!m.configured}
+                    className="text-sm"
+                  >
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Conversation */}
+      <div
+        ref={scrollRef}
+        className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4"
+      >
+        {messages.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+            <span className="flex size-12 items-center justify-center rounded-full bg-primary/15 text-foreground">
+              <Sparkles className="size-6 text-[color-mix(in_oklch,var(--primary),var(--foreground)_35%)]" />
+            </span>
+            <div className="space-y-1">
+              <p className="font-heading text-base font-bold">Hi, I&rsquo;m Sem.</p>
+              <p className="mx-auto max-w-xs text-sm text-muted-foreground">
+                Ask me anything about your own data — I read your logs and cite
+                the notes I used.
               </p>
             </div>
-          ) : (
-            messages.map((m, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "max-w-[85%] rounded-xl px-3 py-2 text-sm whitespace-pre-wrap",
-                  m.role === "user"
-                    ? "ml-auto bg-primary text-primary-foreground"
-                    : "bg-muted",
-                )}
-              >
-                {m.content || (
-                  <Loader2 className="size-4 animate-spin text-muted-foreground" />
-                )}
-                {m.role === "assistant" && m.sources && m.sources.length > 0 ? (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {m.sources.slice(0, 5).map((s) => (
-                      <Badge key={s} variant="outline" className="font-mono text-[10px]">
-                        {s.replace(/\.md$/, "")}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            ))
-          )}
-        </div>
+            <div className="flex flex-wrap justify-center gap-2">
+              {STARTERS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => void send(s)}
+                  disabled={!anyConfigured}
+                  className="rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+            {!anyConfigured ? (
+              <p className="max-w-xs font-mono text-[0.7rem] leading-relaxed text-muted-foreground/80">
+                No API keys yet. Add one to{" "}
+                <code className="text-foreground">.env.local</code> and restart —
+                see the model list for key names.
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          messages.map((m, i) => <Bubble key={i} message={m} />)
+        )}
+      </div>
 
-        <form
-          className="flex items-end gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void send();
+      {/* Composer */}
+      <form
+        className="flex items-end gap-2 border-t border-border p-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void send();
+        }}
+      >
+        <Textarea
+          rows={1}
+          placeholder="Ask Sem about your week…"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              void send();
+            }
           }}
+          className="max-h-32 min-h-[2.75rem] resize-none rounded-[14px]"
+        />
+        <Button
+          type="submit"
+          size="icon"
+          disabled={busy}
+          aria-label="Send"
+          className="size-11 shrink-0 rounded-full"
         >
-          <Textarea
-            rows={2}
-            placeholder="Ask about your week…"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                void send();
-              }
-            }}
-            className="min-h-0 resize-none"
-          />
-          <Button type="submit" size="icon" disabled={busy} aria-label="Send">
-            {busy ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Send className="size-4" />
-            )}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+          {busy ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Send className="size-4" />
+          )}
+        </Button>
+      </form>
+    </div>
+  );
+}
+
+function Bubble({ message }: { message: ChatMessage }) {
+  const isUser = message.role === "user";
+  return (
+    <div className={cn("flex gap-2.5", isUser && "flex-row-reverse")}>
+      {!isUser ? (
+        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <Sparkles className="size-3.5" />
+        </span>
+      ) : null}
+      <div className={cn("max-w-[82%] space-y-2", isUser && "items-end")}>
+        <div
+          className={cn(
+            "rounded-[14px] px-3.5 py-2.5 text-sm whitespace-pre-wrap",
+            isUser
+              ? "rounded-tr-sm bg-foreground text-background"
+              : "rounded-tl-sm border border-border bg-background text-foreground",
+          )}
+        >
+          {message.content || <TypingDots />}
+        </div>
+        {!isUser && message.sources && message.sources.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {message.sources.slice(0, 5).map((s) => (
+              <span
+                key={s}
+                className="rounded-full border border-border bg-muted px-2 py-0.5 font-mono text-[0.65rem] text-muted-foreground"
+              >
+                {s.replace(/\.md$/, "")}
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function TypingDots() {
+  return (
+    <span className="flex items-center gap-1 py-1" aria-label="Sem is typing">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="size-1.5 animate-bounce rounded-full bg-muted-foreground/60"
+          style={{ animationDelay: `${i * 0.15}s` }}
+        />
+      ))}
+    </span>
   );
 }
 

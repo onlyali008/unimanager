@@ -1,12 +1,13 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 
+import { providerFor, isProviderConfigured, CHAT_MODELS } from "@/lib/ai/providers";
 import { retrieveContext } from "@/lib/ai/retrieval";
 import { todayISO } from "@/lib/vault/dates";
 
 export const maxDuration = 120;
 
-const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-4-8";
+const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-4-8";
 const MAX_TURNS = 20;
 
 // Stable system prompt — volatile context (date, retrieval) goes in the
@@ -31,16 +32,16 @@ interface ChatTurn {
 }
 
 export async function POST(request: NextRequest) {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
-      { error: "ANTHROPIC_API_KEY is not configured in .env.local." },
-      { status: 503 },
-    );
-  }
-
   let turns: ChatTurn[];
+  let requestedModel = DEFAULT_MODEL;
   try {
-    const body = (await request.json()) as { messages?: ChatTurn[] };
+    const body = (await request.json()) as {
+      messages?: ChatTurn[];
+      model?: string;
+    };
+    if (typeof body.model === "string" && body.model.trim()) {
+      requestedModel = body.model.trim();
+    }
     turns = (body.messages ?? []).filter(
       (t) =>
         (t.role === "user" || t.role === "assistant") &&
@@ -56,9 +57,30 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
+
+  // Resolve the provider for the requested model.
+  const model = CHAT_MODELS.some((m) => m.id === requestedModel)
+    ? requestedModel
+    : DEFAULT_MODEL;
+  const provider = providerFor(model);
+  if (!provider) {
+    return NextResponse.json(
+      { error: `Unknown model "${model}".` },
+      { status: 400 },
+    );
+  }
+  if (!isProviderConfigured(provider)) {
+    return NextResponse.json(
+      {
+        error: `${provider.label} isn't configured — add ${provider.envKey} to .env.local and restart.`,
+      },
+      { status: 503 },
+    );
+  }
+
   turns = turns.slice(-MAX_TURNS);
-  // The Messages API requires the first turn to be a user turn; trimming
-  // an alternating history can leave an assistant turn in front.
+  // The chat APIs require the first turn to be a user turn; trimming an
+  // alternating history can leave an assistant turn in front.
   while (turns.length > 0 && turns[0].role !== "user") {
     turns.shift();
   }
@@ -81,84 +103,187 @@ export async function POST(request: NextRequest) {
           .join("\n\n")}\n</reference_knowledge>\n\n`
       : "";
 
-  const messages: Anthropic.MessageParam[] = turns.map((t, i) =>
+  // Augment only the final user turn with retrieval + today's date.
+  const augmented = turns.map((t, i) =>
     i === turns.length - 1
       ? {
-          role: "user",
+          role: t.role,
           content: `${contextBlock}${knowledgeBlock}Today is ${todayISO()}.\n\n${t.content}`,
         }
       : { role: t.role, content: t.content },
   );
 
-  const client = new Anthropic();
+  const headers = {
+    "Content-Type": "text/plain; charset=utf-8",
+    "Cache-Control": "no-store",
+    "X-Semestra-Sources": encodeURIComponent(
+      JSON.stringify(
+        [
+          ...retrieval.snippets.map((s) => s.relPath),
+          ...retrieval.knowledge.map((k) => k.ref),
+        ].slice(0, 12),
+      ),
+    ),
+    "X-Semestra-Retrieval": retrieval.mode,
+    "X-Semestra-Model": model,
+  };
 
   try {
-    const stream = client.messages.stream({
-      model: MODEL,
-      max_tokens: 4096,
-      thinking: { type: "adaptive" },
-      system: SYSTEM,
-      messages,
-    });
-
-    const encoder = new TextEncoder();
-    const body = new ReadableStream<Uint8Array>({
-      start(controller) {
-        stream.on("text", (delta) => {
-          controller.enqueue(encoder.encode(delta));
-        });
-        stream.on("error", (error) => {
-          controller.enqueue(
-            encoder.encode(
-              `\n\n[error: ${error instanceof Error ? error.message : "stream failed"}]`,
-            ),
-          );
-          controller.close();
-        });
-        stream.on("end", () => controller.close());
-      },
-      cancel() {
-        stream.abort();
-      },
-    });
-
-    return new Response(body, {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Cache-Control": "no-store",
-        "X-Semestra-Sources": encodeURIComponent(
-          JSON.stringify(
-            [
-              ...retrieval.snippets.map((s) => s.relPath),
-              ...retrieval.knowledge.map((k) => k.ref),
-            ].slice(0, 12),
-          ),
-        ),
-        "X-Semestra-Retrieval": retrieval.mode,
-      },
-    });
+    const body =
+      provider.style === "anthropic"
+        ? anthropicStream(model, augmented)
+        : await openAIStream(provider.baseURL!, provider.envKey, model, augmented);
+    return new Response(body, { headers });
   } catch (error) {
-    if (error instanceof Anthropic.AuthenticationError) {
-      return NextResponse.json(
-        { error: "Anthropic API key was rejected — check ANTHROPIC_API_KEY." },
-        { status: 401 },
-      );
-    }
-    if (error instanceof Anthropic.RateLimitError) {
-      return NextResponse.json(
-        { error: "Rate limited by the Claude API — try again shortly." },
-        { status: 429 },
-      );
-    }
-    if (error instanceof Anthropic.APIError) {
-      return NextResponse.json(
-        { error: `Claude API error: ${error.message}` },
-        { status: 502 },
-      );
-    }
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Chat failed" },
-      { status: 500 },
+    return errorResponse(error);
+  }
+}
+
+/** Native Anthropic SDK streaming → plain-text ReadableStream. */
+function anthropicStream(
+  model: string,
+  augmented: ChatTurn[],
+): ReadableStream<Uint8Array> {
+  const client = new Anthropic();
+  // Adaptive thinking is supported on Opus 4.6+, Sonnet 5/4.6, and Fable 5 —
+  // but not on Haiku. Omit it there to avoid a 400.
+  const useThinking = !/haiku/i.test(model);
+  const stream = client.messages.stream({
+    model,
+    max_tokens: 4096,
+    ...(useThinking ? { thinking: { type: "adaptive" as const } } : {}),
+    system: SYSTEM,
+    messages: augmented as Anthropic.MessageParam[],
+  });
+
+  const encoder = new TextEncoder();
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      stream.on("text", (delta) => controller.enqueue(encoder.encode(delta)));
+      stream.on("error", (error) => {
+        controller.enqueue(
+          encoder.encode(
+            `\n\n[error: ${error instanceof Error ? error.message : "stream failed"}]`,
+          ),
+        );
+        controller.close();
+      });
+      stream.on("end", () => controller.close());
+    },
+    cancel() {
+      stream.abort();
+    },
+  });
+}
+
+/**
+ * OpenAI-compatible /chat/completions streaming (OpenAI, Kimi, Qwen, DeepSeek,
+ * Gemini, Grok, Groq, OpenRouter, local Ollama) → plain-text ReadableStream.
+ * We deliberately send only messages + stream to stay compatible across
+ * providers that disagree on token-limit and sampling parameter names.
+ */
+async function openAIStream(
+  baseURL: string,
+  envKey: string,
+  model: string,
+  augmented: ChatTurn[],
+): Promise<ReadableStream<Uint8Array>> {
+  const key = envKey ? process.env[envKey] : "";
+  const upstream = await fetch(`${baseURL}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(key ? { Authorization: `Bearer ${key}` } : {}),
+    },
+    body: JSON.stringify({
+      model,
+      stream: true,
+      messages: [{ role: "system", content: SYSTEM }, ...augmented],
+    }),
+  });
+
+  if (!upstream.ok || !upstream.body) {
+    const detail = (await upstream.text().catch(() => "")).slice(0, 400);
+    throw new UpstreamError(
+      `Provider returned ${upstream.status}${detail ? `: ${detail}` : ""}`,
+      upstream.status,
     );
   }
+
+  const reader = upstream.body.getReader();
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  let buffer = "";
+
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      const { done, value } = await reader.read();
+      if (done) {
+        controller.close();
+        return;
+      }
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+      for (const raw of lines) {
+        const line = raw.trim();
+        if (!line.startsWith("data:")) continue;
+        const data = line.slice(5).trim();
+        if (data === "[DONE]") {
+          controller.close();
+          return;
+        }
+        try {
+          const json = JSON.parse(data) as {
+            choices?: { delta?: { content?: string } }[];
+          };
+          const delta = json.choices?.[0]?.delta?.content;
+          if (delta) controller.enqueue(encoder.encode(delta));
+        } catch {
+          // Ignore keep-alive comments / partial frames.
+        }
+      }
+    },
+    cancel() {
+      void reader.cancel();
+    },
+  });
+}
+
+class UpstreamError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
+function errorResponse(error: unknown) {
+  if (error instanceof Anthropic.AuthenticationError) {
+    return NextResponse.json(
+      { error: "Anthropic API key was rejected — check ANTHROPIC_API_KEY." },
+      { status: 401 },
+    );
+  }
+  if (error instanceof Anthropic.RateLimitError) {
+    return NextResponse.json(
+      { error: "Rate limited by the model provider — try again shortly." },
+      { status: 429 },
+    );
+  }
+  if (error instanceof Anthropic.APIError) {
+    return NextResponse.json(
+      { error: `Model provider error: ${error.message}` },
+      { status: 502 },
+    );
+  }
+  if (error instanceof UpstreamError) {
+    const status = error.status === 401 || error.status === 429 ? error.status : 502;
+    return NextResponse.json({ error: error.message }, { status });
+  }
+  return NextResponse.json(
+    { error: error instanceof Error ? error.message : "Chat failed" },
+    { status: 500 },
+  );
 }

@@ -5,18 +5,17 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Semestra design tokens — "Declassified Editorial".
- * A modern-brutalist dossier: manila paper + typewriter ink in light,
- * microfilm charcoal in dark. Sharp corners, drawn rules, stamp-red accent.
- * Raw values live in :root / .dark; this @theme block exposes them as
- * Tailwind utilities. See docs/design-system.md.
+ * Semestra design tokens — "Editorial Brutalist".
+ * A modern-brutalist study desk: warm bone paper + graphite ink, one acid-lime
+ * marker. Rules and whitespace do the work, not heavy boxes. Sharp corners,
+ * Bricolage Grotesque display, IBM Plex Mono for data. See docs/design-system.md.
  */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-lora);
+  --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -62,25 +61,27 @@
 }
 
 :root {
-  /* Light — "Manila Dossier": aged paper, typewriter ink, stamp red. */
-  --background: oklch(0.938 0.014 78);
-  --foreground: oklch(0.225 0.008 60);
-  --card: oklch(0.975 0.006 85);
-  --card-foreground: oklch(0.225 0.008 60);
-  --popover: oklch(0.975 0.006 85);
-  --popover-foreground: oklch(0.225 0.008 60);
-  --primary: oklch(0.52 0.185 27);
-  --primary-foreground: oklch(0.97 0.008 80);
-  --secondary: oklch(0.9 0.02 80);
-  --secondary-foreground: oklch(0.28 0.01 60);
-  --muted: oklch(0.912 0.016 80);
-  --muted-foreground: oklch(0.44 0.012 60);
-  --accent: oklch(0.9 0.03 32);
-  --accent-foreground: oklch(0.4 0.14 28);
+  /* Light — warm bone paper, graphite ink, acid-lime marker. */
+  --background: oklch(0.936 0.012 84);
+  --foreground: oklch(0.205 0.008 72);
+  --card: oklch(0.972 0.007 86);
+  --card-foreground: oklch(0.205 0.008 72);
+  --popover: oklch(0.978 0.006 86);
+  --popover-foreground: oklch(0.205 0.008 72);
+  /* Acid lime — the single accent. Ink text sits on top of it. */
+  --primary: oklch(0.87 0.185 122);
+  --primary-foreground: oklch(0.2 0.01 74);
+  --secondary: oklch(0.902 0.012 84);
+  --secondary-foreground: oklch(0.27 0.008 72);
+  --muted: oklch(0.915 0.012 84);
+  --muted-foreground: oklch(0.475 0.011 72);
+  --accent: oklch(0.905 0.045 120);
+  --accent-foreground: oklch(0.33 0.07 118);
   --destructive: oklch(0.53 0.2 25);
-  --border: oklch(0.5 0.015 62);
-  --input: oklch(0.46 0.016 62);
-  --ring: oklch(0.52 0.185 27);
+  /* Soft warm hairline — kept light so rules read as lines, not cages. */
+  --border: oklch(0.855 0.012 84);
+  --input: oklch(0.8 0.012 84);
+  --ring: oklch(0.78 0.16 122);
   --domain-nutrition: oklch(0.5 0.11 150);
   --domain-fitness: oklch(0.55 0.13 45);
   --domain-sleep: oklch(0.48 0.12 285);
@@ -93,40 +94,40 @@
   --chart-4: var(--domain-sleep);
   --chart-5: var(--domain-finances);
   --radius: 0px;
-  /* Hard offset shadow ink + faint paper grain, tuned per theme. */
-  --ink-shadow: oklch(0.225 0.008 60 / 0.9);
-  --grain: oklch(0.3 0.02 60 / 0.035);
-  /* Sidebar — the black filing-cabinet drawer, dark in both themes. */
-  --sidebar: oklch(0.21 0.008 60);
-  --sidebar-foreground: oklch(0.82 0.015 82);
-  --sidebar-primary: oklch(0.6 0.18 28);
-  --sidebar-primary-foreground: oklch(0.97 0.008 80);
-  --sidebar-accent: oklch(0.28 0.012 60);
-  --sidebar-accent-foreground: oklch(0.96 0.01 80);
-  --sidebar-border: oklch(0.9 0.01 80 / 0.14);
-  --sidebar-ring: oklch(0.6 0.18 28);
+  /* Hard offset shadow ink + a barely-there paper grain. */
+  --ink-shadow: oklch(0.205 0.008 72 / 0.9);
+  --grain: oklch(0.3 0.02 70 / 0.018);
+  /* Sidebar — the graphite drawer, dark in both themes, lime highlight. */
+  --sidebar: oklch(0.18 0.006 72);
+  --sidebar-foreground: oklch(0.82 0.013 84);
+  --sidebar-primary: oklch(0.88 0.19 121);
+  --sidebar-primary-foreground: oklch(0.19 0.008 72);
+  --sidebar-accent: oklch(0.265 0.008 72);
+  --sidebar-accent-foreground: oklch(0.95 0.01 84);
+  --sidebar-border: oklch(0.9 0.01 84 / 0.12);
+  --sidebar-ring: oklch(0.88 0.19 121);
 }
 
 .dark {
-  /* Dark — "Microfilm": warm charcoal stock, phosphor ink, hot stamp red. */
-  --background: oklch(0.185 0.006 60);
-  --foreground: oklch(0.9 0.014 82);
-  --card: oklch(0.225 0.007 60);
-  --card-foreground: oklch(0.9 0.014 82);
-  --popover: oklch(0.225 0.007 60);
-  --popover-foreground: oklch(0.9 0.014 82);
-  --primary: oklch(0.62 0.175 29);
-  --primary-foreground: oklch(0.97 0.01 80);
-  --secondary: oklch(0.27 0.008 60);
-  --secondary-foreground: oklch(0.9 0.014 82);
-  --muted: oklch(0.27 0.008 60);
-  --muted-foreground: oklch(0.7 0.014 76);
-  --accent: oklch(0.31 0.05 30);
-  --accent-foreground: oklch(0.86 0.09 42);
+  /* Dark — warm near-black stock, bone ink, hot acid lime. */
+  --background: oklch(0.19 0.006 72);
+  --foreground: oklch(0.92 0.012 84);
+  --card: oklch(0.228 0.006 72);
+  --card-foreground: oklch(0.92 0.012 84);
+  --popover: oklch(0.228 0.006 72);
+  --popover-foreground: oklch(0.92 0.012 84);
+  --primary: oklch(0.9 0.2 121);
+  --primary-foreground: oklch(0.18 0.008 72);
+  --secondary: oklch(0.272 0.007 72);
+  --secondary-foreground: oklch(0.92 0.012 84);
+  --muted: oklch(0.272 0.007 72);
+  --muted-foreground: oklch(0.685 0.012 80);
+  --accent: oklch(0.3 0.06 120);
+  --accent-foreground: oklch(0.86 0.16 120);
   --destructive: oklch(0.64 0.19 27);
-  --border: oklch(0.9 0.01 80 / 0.18);
-  --input: oklch(0.9 0.01 80 / 0.22);
-  --ring: oklch(0.62 0.175 29);
+  --border: oklch(0.9 0.01 84 / 0.14);
+  --input: oklch(0.9 0.01 84 / 0.18);
+  --ring: oklch(0.9 0.2 121);
   --domain-nutrition: oklch(0.72 0.13 150);
   --domain-fitness: oklch(0.74 0.14 45);
   --domain-sleep: oklch(0.72 0.12 285);
@@ -138,16 +139,16 @@
   --chart-3: var(--domain-fitness);
   --chart-4: var(--domain-sleep);
   --chart-5: var(--domain-finances);
-  --ink-shadow: oklch(0 0 0 / 0.85);
-  --grain: oklch(0.85 0.01 80 / 0.025);
-  --sidebar: oklch(0.15 0.006 60);
-  --sidebar-foreground: oklch(0.8 0.015 82);
-  --sidebar-primary: oklch(0.62 0.175 29);
-  --sidebar-primary-foreground: oklch(0.97 0.01 80);
-  --sidebar-accent: oklch(0.25 0.01 60);
-  --sidebar-accent-foreground: oklch(0.95 0.01 80);
-  --sidebar-border: oklch(0.9 0.01 80 / 0.12);
-  --sidebar-ring: oklch(0.62 0.175 29);
+  --ink-shadow: oklch(0 0 0 / 0.8);
+  --grain: oklch(0.85 0.01 84 / 0.014);
+  --sidebar: oklch(0.155 0.006 72);
+  --sidebar-foreground: oklch(0.8 0.013 84);
+  --sidebar-primary: oklch(0.9 0.2 121);
+  --sidebar-primary-foreground: oklch(0.18 0.008 72);
+  --sidebar-accent: oklch(0.24 0.008 72);
+  --sidebar-accent-foreground: oklch(0.95 0.01 84);
+  --sidebar-border: oklch(0.9 0.01 84 / 0.1);
+  --sidebar-ring: oklch(0.9 0.2 121);
 }
 
 @layer base {
@@ -156,17 +157,10 @@
   }
   body {
     @apply bg-background text-foreground;
-    /* Faint paper grain — a cross-hatch of hairline rules, kept subtle. */
+    /* Faint paper grain — a whisper of texture so surfaces aren't dead-flat. */
     background-image:
       repeating-linear-gradient(
         0deg,
-        var(--grain) 0px,
-        var(--grain) 1px,
-        transparent 1px,
-        transparent 3px
-      ),
-      repeating-linear-gradient(
-        90deg,
         var(--grain) 0px,
         var(--grain) 1px,
         transparent 1px,
@@ -179,16 +173,20 @@
   h1,
   h2,
   h3 {
-    @apply font-heading;
-    letter-spacing: -0.01em;
+    @apply font-heading font-bold;
+    letter-spacing: -0.02em;
+  }
+  h1 {
+    letter-spacing: -0.03em;
   }
   /* Tabular, slashed-zero figures everywhere mono is used for data. */
   .font-mono,
   code,
   kbd,
   samp {
-    font-feature-settings: "tnum" 1, "zero" 1, "ss01" 1;
+    font-feature-settings: "tnum" 1, "zero" 1;
   }
+  /* Acid-lime marker as the text selection — the highlighter, made literal. */
   ::selection {
     background: var(--primary);
     color: var(--primary-foreground);
@@ -196,18 +194,22 @@
 }
 
 @layer components {
-  /* Typewriter caption: uppercase mono, wide tracking — the dossier voice. */
+  /* Structural micro-label: uppercase mono, wide tracking — the data voice. */
   .label-mono {
-    @apply font-mono text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground;
+    @apply font-mono text-[0.7rem] font-medium uppercase tracking-[0.16em] text-muted-foreground;
   }
 
-  /* Rubber-stamp chip. Set color via text-* and a rotate-* utility inline. */
-  .stamp {
-    @apply inline-flex items-center gap-1.5 border-2 border-current px-2 py-0.5
-      font-mono text-[0.65rem] font-bold uppercase tracking-[0.16em];
+  /* Highlighter swipe — drop a lime marker behind display type. */
+  .mark {
+    background-image: linear-gradient(transparent 58%, var(--primary) 58%);
   }
 
-  /* Brutalist hard offset shadow — a printed sheet lifted off the desk. */
+  /* Heavy ink rule, as under an editorial masthead. */
+  .rule-strong {
+    border-bottom: 2px solid var(--foreground);
+  }
+
+  /* Brutalist hard offset shadow — kept for deliberate hover lifts only. */
   .shadow-hard {
     box-shadow: 4px 4px 0 0 var(--ink-shadow);
   }
@@ -215,13 +217,8 @@
     box-shadow: 2px 2px 0 0 var(--ink-shadow);
   }
 
-  /* Redaction bar — solid ink block, for skeletons and censored fields. */
+  /* Solid ink block — skeletons and redacted fields. */
   .redaction {
     background-color: var(--foreground);
-  }
-
-  /* Double rule, as under a document masthead. */
-  .rule-double {
-    border-top: 3px double var(--border);
   }
 }

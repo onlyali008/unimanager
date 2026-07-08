@@ -1,6 +1,5 @@
 import type { LucideIcon } from "lucide-react";
 
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 interface StatCardProps {
@@ -9,7 +8,7 @@ interface StatCardProps {
   unit?: string;
   sub?: string;
   icon?: LucideIcon;
-  /** A `text-<domain>` class; drives the accent stripe and icon color. */
+  /** A `text-<domain>` class; drives the top rule and icon color. */
   accentClass?: string;
 }
 
@@ -22,31 +21,36 @@ export function StatCard({
   accentClass,
 }: StatCardProps) {
   return (
-    <Card className={cn("relative py-0", accentClass)}>
-      {/* Domain accent stripe — a colored file-tab down the left edge. */}
+    <div
+      className={cn(
+        "relative border border-border bg-card",
+        accentClass,
+      )}
+    >
+      {/* Domain accent — a hairline rule across the top edge. */}
       <span
         aria-hidden
-        className="absolute inset-y-0 left-0 w-1 bg-current"
+        className="absolute inset-x-0 top-0 h-[3px] bg-current"
       />
-      <CardContent className="px-4 py-3.5 pl-5 text-foreground">
+      <div className="px-4 pt-4 pb-3.5 text-foreground">
         <div className="flex items-start justify-between gap-2">
           <p className="label-mono truncate">{label}</p>
           {Icon ? <Icon className="size-4 shrink-0 text-current" /> : null}
         </div>
-        <p className="mt-1.5 font-mono text-2xl font-semibold tracking-tight tabular-nums">
+        <p className="mt-2 font-heading text-3xl leading-none font-extrabold tracking-[-0.02em] tabular-nums">
           {value}
           {unit ? (
-            <span className="ml-1 text-sm font-normal text-muted-foreground">
+            <span className="ml-1 text-base font-medium text-muted-foreground">
               {unit}
             </span>
           ) : null}
         </p>
         {sub ? (
-          <p className="mt-0.5 truncate font-mono text-[0.7rem] tracking-wide text-muted-foreground">
+          <p className="mt-2 truncate font-mono text-[0.7rem] tracking-wide text-muted-foreground">
             {sub}
           </p>
         ) : null}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

@@ -32,7 +32,7 @@ export default async function AppLayout({
       <SidebarProvider defaultOpen={defaultOpen}>
         <AppSidebar />
         <SidebarInset>
-          <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b-2 border-border bg-background/85 px-4 backdrop-blur">
+          <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/85 px-4 backdrop-blur">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-1 h-4" />
             <div className="flex items-center gap-2">
@@ -40,10 +40,7 @@ export default async function AppLayout({
                 className="size-1.5 shrink-0 animate-pulse bg-primary"
                 aria-hidden
               />
-              <span className="hidden font-mono text-[0.65rem] font-medium uppercase tracking-[0.18em] text-muted-foreground sm:inline">
-                On File
-              </span>
-              <span className="hidden font-mono text-[0.65rem] tabular-nums tracking-[0.12em] text-muted-foreground/80 md:inline">
+              <span className="hidden font-mono text-[0.65rem] tabular-nums tracking-[0.14em] text-muted-foreground sm:inline">
                 {new Date()
                   .toLocaleDateString("en-CA", {
                     weekday: "short",
