@@ -105,6 +105,15 @@ export const PROVIDERS: Provider[] = [
     baseURL: "https://openrouter.ai/api/v1",
   },
   {
+    // Free, cloud-hosted (runs on NVIDIA's GPUs, not yours). Key from
+    // build.nvidia.com. Rate-limited free tier (~40 req/min + credits).
+    id: "nvidia",
+    label: "NVIDIA NIM",
+    style: "openai",
+    envKey: "NVIDIA_API_KEY",
+    baseURL: "https://integrate.api.nvidia.com/v1",
+  },
+  {
     id: "ollama",
     label: "Local · Ollama",
     style: "openai",
@@ -150,6 +159,26 @@ export const CHAT_MODELS: ChatModel[] = [
   { id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B", provider: "groq" },
   // OpenRouter (gateway — any model, or auto-route)
   { id: "openrouter/auto", label: "OpenRouter (auto)", provider: "openrouter" },
+  // NVIDIA NIM (free, cloud-hosted). Mistral Nemotron first = the default when
+  // NVIDIA is your only provider. Nemotron Super is a reasoning model — if its
+  // answers get long-winded, tell me and I'll auto-append "detailed thinking
+  // off" to Sem's system prompt for it.
+  {
+    id: "mistralai/mistral-nemotron",
+    label: "Mistral Nemotron",
+    provider: "nvidia",
+  },
+  {
+    id: "meta/llama-3.3-70b-instruct",
+    label: "Llama 3.3 70B",
+    provider: "nvidia",
+  },
+  {
+    id: "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+    label: "Nemotron Super 49B",
+    provider: "nvidia",
+  },
+  { id: "qwen/qwen3-235b-a22b", label: "Qwen3 235B", provider: "nvidia" },
   // Local
   {
     id: process.env.OLLAMA_MODEL ?? "llama3.2:3b",
