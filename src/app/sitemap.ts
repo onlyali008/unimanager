@@ -6,7 +6,14 @@ const BASE_URL =
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
-  return ["", "/courses", "/calendar", "/progress", "/settings"].map(
+  return [
+    "",
+    "/courses",
+    "/calendar",
+    "/progress",
+    "/assistant",
+    "/settings",
+  ].map(
     (path) => ({
       url: `${BASE_URL}${path}`,
       lastModified: now,

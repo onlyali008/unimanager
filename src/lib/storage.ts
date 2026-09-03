@@ -12,6 +12,8 @@ import type {
 import {
   COURSE_PALETTE,
   CURRENT_SCHEMA_VERSION,
+  DEFAULT_OLLAMA_MODEL,
+  DEFAULT_OLLAMA_URL,
   PRIORITIES,
   TASK_TYPES,
 } from "./types";
@@ -150,6 +152,8 @@ function coerceSettings(value: unknown, currentTermId: string): Settings {
     theme,
     density,
     currentTermId: str(v.currentTermId) ?? currentTermId,
+    ollamaUrl: str(v.ollamaUrl) ?? DEFAULT_OLLAMA_URL,
+    ollamaModel: str(v.ollamaModel) ?? DEFAULT_OLLAMA_MODEL,
   };
 }
 

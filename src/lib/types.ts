@@ -117,7 +117,14 @@ export interface Settings {
   theme: ThemePref;
   density: Density;
   currentTermId: string;
+  /** Base URL of a local Ollama server for the assistant. */
+  ollamaUrl: string;
+  /** Ollama model tag used by the assistant. */
+  ollamaModel: string;
 }
+
+export const DEFAULT_OLLAMA_URL = "http://localhost:11434";
+export const DEFAULT_OLLAMA_MODEL = "llama3.2:1b";
 
 export interface StoreState {
   version: number;
@@ -133,4 +140,6 @@ export const CURRENT_SCHEMA_VERSION = 3;
 export const DEFAULT_SETTINGS: Omit<Settings, "currentTermId"> = {
   theme: "system",
   density: "comfortable",
+  ollamaUrl: DEFAULT_OLLAMA_URL,
+  ollamaModel: DEFAULT_OLLAMA_MODEL,
 };

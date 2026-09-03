@@ -5,6 +5,7 @@ import type { Density, ThemePref } from "@/lib/types";
 import { useStore } from "@/hooks/useStore";
 import * as storeApi from "@/lib/store";
 import { exportJSON, importJSON } from "@/lib/storage";
+import { listOllamaModels } from "@/lib/assistant";
 
 export default function SettingsPage() {
   const {
@@ -21,6 +22,8 @@ export default function SettingsPage() {
 
   const [newTerm, setNewTerm] = useState("");
   const [message, setMessage] = useState("");
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function announce(text: string) {
@@ -56,6 +59,27 @@ export default function SettingsPage() {
     };
     reader.readAsText(file);
     e.target.value = "";
+  }
+
+  async function testConnection() {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const models = await listOllamaModels(settings.ollamaUrl);
+      const has = models.includes(settings.ollamaModel);
+      setTestResult(
+        has
+          ? `Connected. ${settings.ollamaModel} is installed and ready.`
+          : `Connected, but ${settings.ollamaModel} isn't installed. Run: ollama pull ${settings.ollamaModel}` +
+              (models.length ? ` (found: ${models.join(", ")})` : ""),
+      );
+    } catch {
+      setTestResult(
+        "Could not reach Ollama. Start it with OLLAMA_ORIGINS=http://localhost:3000 ollama serve.",
+      );
+    } finally {
+      setTesting(false);
+    }
   }
 
   return (
@@ -165,6 +189,70 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
+          </section>
+
+          <section className="card settings-section">
+            <h2 className="group-title">AI assistant</h2>
+            <p className="muted-note">
+              The assistant runs on a local{" "}
+              <a
+                href="https://ollama.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="course-name-link"
+              >
+                Ollama
+              </a>{" "}
+              model — private and offline. A light model like{" "}
+              <code>llama3.2:1b</code> is plenty for schedule questions; try{" "}
+              <code>qwen2.5:1.5b</code> or <code>llama3.2:3b</code> for sharper
+              answers.
+            </p>
+            <div className="settings-grid">
+              <div>
+                <label htmlFor="ollama-url" className="field-label">
+                  Ollama URL
+                </label>
+                <input
+                  id="ollama-url"
+                  className="field-input"
+                  value={settings.ollamaUrl}
+                  onChange={(e) =>
+                    updateSettings({ ollamaUrl: e.target.value })
+                  }
+                  placeholder="http://localhost:11434"
+                />
+              </div>
+              <div>
+                <label htmlFor="ollama-model" className="field-label">
+                  Model
+                </label>
+                <input
+                  id="ollama-model"
+                  className="field-input"
+                  value={settings.ollamaModel}
+                  onChange={(e) =>
+                    updateSettings({ ollamaModel: e.target.value })
+                  }
+                  placeholder="llama3.2:1b"
+                />
+              </div>
+            </div>
+            <div className="data-buttons">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={testConnection}
+                disabled={testing}
+              >
+                {testing ? "Testing…" : "Test connection"}
+              </button>
+            </div>
+            {testResult && <p className="muted-note">{testResult}</p>}
+            <p className="muted-note">
+              Ollama must allow this app to reach it. Start it with{" "}
+              <code>OLLAMA_ORIGINS=http://localhost:3000 ollama serve</code>.
+            </p>
           </section>
 
           <section className="card settings-section">

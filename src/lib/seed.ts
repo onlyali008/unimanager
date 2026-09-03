@@ -1,5 +1,9 @@
 import type { Course, StoreState, Task, Term } from "./types";
-import { CURRENT_SCHEMA_VERSION } from "./types";
+import {
+  CURRENT_SCHEMA_VERSION,
+  DEFAULT_OLLAMA_MODEL,
+  DEFAULT_OLLAMA_URL,
+} from "./types";
 
 function dayOffset(days: number, hour = 17, minute = 0): string {
   const d = new Date();
@@ -181,6 +185,8 @@ export function createSeedState(): StoreState {
       theme: "system",
       density: "comfortable",
       currentTermId: term.id,
+      ollamaUrl: DEFAULT_OLLAMA_URL,
+      ollamaModel: DEFAULT_OLLAMA_MODEL,
     },
   };
 }
