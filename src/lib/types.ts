@@ -1,0 +1,108 @@
+// Core domain model for Semestra.
+
+export type TaskType = "assignment" | "exam" | "reading" | "project" | "study";
+
+export type Priority = "low" | "medium" | "high";
+
+export const TASK_TYPES: TaskType[] = [
+  "assignment",
+  "exam",
+  "reading",
+  "project",
+  "study",
+];
+
+export const PRIORITIES: Priority[] = ["low", "medium", "high"];
+
+export const TASK_TYPE_LABELS: Record<TaskType, string> = {
+  assignment: "Assignment",
+  exam: "Exam",
+  reading: "Reading",
+  project: "Project",
+  study: "Study session",
+};
+
+export const PRIORITY_LABELS: Record<Priority, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+};
+
+/** Curated accent palette offered when creating a course. */
+export const COURSE_PALETTE = [
+  "#b5651d",
+  "#3f6f5b",
+  "#5b6abe",
+  "#9a5b8f",
+  "#4f7fa8",
+  "#a8794f",
+  "#7a8b3c",
+  "#b23b5e",
+];
+
+export interface Term {
+  id: string;
+  name: string;
+  /** ISO date (yyyy-mm-dd). Optional. */
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface Course {
+  id: string;
+  name: string;
+  code: string;
+  instructor?: string;
+  color: string;
+  termId: string;
+  /** Weekly meeting days, 0 = Sunday … 6 = Saturday. */
+  meetingDays: number[];
+  /** "HH:mm" 24h local time. */
+  meetingStart?: string;
+  meetingEnd?: string;
+  targetGrade?: string;
+  archived: boolean;
+  createdAt: string;
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  type: TaskType;
+  termId: string;
+  courseId?: string;
+  /** ISO 8601 datetime. For study sessions, this is the scheduled time. */
+  dueAt?: string;
+  priority: Priority;
+  estimatedMinutes?: number;
+  notes?: string;
+  completed: boolean;
+  completedAt?: string;
+  /** For study sessions created from another task. */
+  linkedTaskId?: string;
+  createdAt: string;
+}
+
+export type ThemePref = "system" | "light" | "dark";
+export type Density = "comfortable" | "compact";
+
+export interface Settings {
+  theme: ThemePref;
+  density: Density;
+  currentTermId: string;
+}
+
+export interface StoreState {
+  version: number;
+  terms: Term[];
+  courses: Course[];
+  tasks: Task[];
+  settings: Settings;
+}
+
+export const CURRENT_SCHEMA_VERSION = 2;
+
+export const DEFAULT_SETTINGS: Omit<Settings, "currentTermId"> = {
+  theme: "system",
+  density: "comfortable",
+};
