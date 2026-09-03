@@ -256,7 +256,7 @@ export default function CoursesPage() {
       )}
 
       <CourseForm
-        key={formKey}
+        key={`course-form-${formKey}`}
         open={formOpen}
         editing={editing}
         onSubmit={(draft) => {
@@ -277,7 +277,7 @@ export default function CoursesPage() {
       />
 
       <ImportDialog
-        key={importKey}
+        key={`import-${importKey}`}
         open={importOpen}
         onImport={(detectedCourses, detectedTasks, withTasks) => {
           const result = importCalendar(

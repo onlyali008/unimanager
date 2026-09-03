@@ -377,7 +377,7 @@ export default function Dashboard() {
       )}
 
       <TaskForm
-        key={formKey}
+        key={`task-form-${formKey}`}
         open={formOpen}
         editing={editing}
         courses={activeCourses}
