@@ -176,6 +176,7 @@ export function createSeedState(): StoreState {
     terms: [term],
     courses,
     tasks,
+    artifacts: [],
     settings: {
       theme: "system",
       density: "comfortable",

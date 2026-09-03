@@ -1,6 +1,13 @@
 // External store for all Semestra data, read via useSyncExternalStore.
 
-import type { Course, Settings, StoreState, Task, Term } from "./types";
+import type {
+  Artifact,
+  Course,
+  Settings,
+  StoreState,
+  Task,
+  Term,
+} from "./types";
 import { clearAll, loadState, resetToDemo, saveState } from "./storage";
 import { createSeedState } from "./seed";
 
@@ -10,6 +17,7 @@ const SERVER_SNAPSHOT: StoreState = {
   ...createSeedState(),
   tasks: [],
   courses: [],
+  artifacts: [],
 };
 
 let current: StoreState | null = null;
@@ -70,6 +78,11 @@ export function setCourses(courses: Course[]): void {
 /* --- Terms --------------------------------------------------------- */
 export function setTerms(terms: Term[]): void {
   commit({ ...ensureLoaded(), terms });
+}
+
+/* --- Artifacts ----------------------------------------------------- */
+export function setArtifacts(artifacts: Artifact[]): void {
+  commit({ ...ensureLoaded(), artifacts });
 }
 
 /* --- Settings ------------------------------------------------------ */

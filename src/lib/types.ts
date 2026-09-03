@@ -85,6 +85,31 @@ export interface Task {
   createdAt: string;
 }
 
+/** A named, self-contained piece of course material (artifact-style). */
+export type ArtifactKind = "note" | "transcript" | "audio";
+
+export const ARTIFACT_KIND_LABELS: Record<ArtifactKind, string> = {
+  note: "Note",
+  transcript: "Transcript",
+  audio: "Recording",
+};
+
+export interface Artifact {
+  id: string;
+  courseId: string;
+  termId: string;
+  kind: ArtifactKind;
+  title: string;
+  /** Markdown/plain text for note & transcript; empty for audio. */
+  content: string;
+  /** Key into the IndexedDB audio blob store (audio artifacts only). */
+  audioId?: string;
+  durationMs?: number;
+  mimeType?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type ThemePref = "system" | "light" | "dark";
 export type Density = "comfortable" | "compact";
 
@@ -99,10 +124,11 @@ export interface StoreState {
   terms: Term[];
   courses: Course[];
   tasks: Task[];
+  artifacts: Artifact[];
   settings: Settings;
 }
 
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 export const DEFAULT_SETTINGS: Omit<Settings, "currentTermId"> = {
   theme: "system",

@@ -2,6 +2,8 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 import type {
+  Artifact,
+  ArtifactKind,
   Course,
   Settings,
   StoreState,
@@ -10,8 +12,20 @@ import type {
 } from "@/lib/types";
 import { COURSE_PALETTE } from "@/lib/types";
 import * as store from "@/lib/store";
+import { deleteAudio } from "@/lib/audioStore";
 import { newId } from "@/lib/tasks";
 import type { DetectedCourse, DetectedTaskEvent } from "@/lib/ics";
+
+export interface NewArtifact {
+  courseId: string;
+  termId: string;
+  kind: ArtifactKind;
+  title: string;
+  content?: string;
+  audioId?: string;
+  durationMs?: number;
+  mimeType?: string;
+}
 
 export interface ImportResult {
   courses: number;
@@ -36,6 +50,7 @@ export interface UseStore {
   terms: Term[];
   courses: Course[];
   tasks: Task[];
+  artifacts: Artifact[];
   settings: Settings;
 
   addTask: (draft: TaskDraft) => Task;
@@ -59,6 +74,13 @@ export interface UseStore {
     tasks: DetectedTaskEvent[],
     importTasks: boolean,
   ) => ImportResult;
+
+  addArtifact: (input: NewArtifact) => Artifact;
+  updateArtifact: (
+    id: string,
+    patch: Partial<Pick<Artifact, "title" | "content">>,
+  ) => void;
+  deleteArtifact: (id: string) => void;
 
   addTerm: (name: string) => Term;
   setCurrentTerm: (id: string) => void;
@@ -255,6 +277,46 @@ export function useStore(): UseStore {
     });
   }, []);
 
+  const addArtifact = useCallback((input: NewArtifact): Artifact => {
+    const now = new Date().toISOString();
+    const artifact: Artifact = {
+      id: newId(),
+      courseId: input.courseId,
+      termId: input.termId,
+      kind: input.kind,
+      title: input.title,
+      content: input.content ?? "",
+      audioId: input.audioId,
+      durationMs: input.durationMs,
+      mimeType: input.mimeType,
+      createdAt: now,
+      updatedAt: now,
+    };
+    store.setArtifacts([...snap().artifacts, artifact]);
+    return artifact;
+  }, []);
+
+  const updateArtifact = useCallback(
+    (id: string, patch: Partial<Pick<Artifact, "title" | "content">>) => {
+      const now = new Date().toISOString();
+      store.setArtifacts(
+        snap().artifacts.map((a) =>
+          a.id === id ? { ...a, ...patch, updatedAt: now } : a,
+        ),
+      );
+    },
+    [],
+  );
+
+  const deleteArtifact = useCallback((id: string) => {
+    const removed = snap().artifacts.find((a) => a.id === id);
+    store.setArtifacts(snap().artifacts.filter((a) => a.id !== id));
+    if (removed?.audioId) {
+      // Best-effort blob cleanup; the metadata is already gone.
+      void deleteAudio(removed.audioId).catch(() => {});
+    }
+  }, []);
+
   const addTerm = useCallback((name: string): Term => {
     const term: Term = { id: newId(), name: name.trim() || "New term" };
     store.setTerms([...snap().terms, term]);
@@ -281,6 +343,7 @@ export function useStore(): UseStore {
     terms: state.terms,
     courses: state.courses,
     tasks: state.tasks,
+    artifacts: state.artifacts,
     settings: state.settings,
     addTask,
     updateTask,
@@ -294,6 +357,9 @@ export function useStore(): UseStore {
     setCourseArchived,
     deleteCourse,
     importCalendar,
+    addArtifact,
+    updateArtifact,
+    deleteArtifact,
     addTerm,
     setCurrentTerm,
     updateSettings,

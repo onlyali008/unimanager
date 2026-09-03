@@ -1,4 +1,6 @@
 import type {
+  Artifact,
+  ArtifactKind,
   Course,
   Priority,
   Settings,
@@ -104,6 +106,36 @@ function coerceTask(value: unknown, fallbackTermId: string): Task | null {
   return task;
 }
 
+const ARTIFACT_KINDS: ArtifactKind[] = ["note", "transcript", "audio"];
+function isArtifactKind(v: unknown): v is ArtifactKind {
+  return typeof v === "string" && (ARTIFACT_KINDS as string[]).includes(v);
+}
+
+function coerceArtifact(value: unknown, fallbackTermId: string): Artifact | null {
+  if (!value || typeof value !== "object") return null;
+  const v = value as Record<string, unknown>;
+  if (!str(v.id) || !str(v.courseId)) return null;
+  const now = new Date().toISOString();
+  const artifact: Artifact = {
+    id: v.id as string,
+    courseId: v.courseId as string,
+    termId: str(v.termId) ?? fallbackTermId,
+    kind: isArtifactKind(v.kind) ? v.kind : "note",
+    title: str(v.title) ?? "Untitled",
+    content: typeof v.content === "string" ? v.content : "",
+    createdAt: isoOrUndef(v.createdAt) ?? now,
+    updatedAt: isoOrUndef(v.updatedAt) ?? now,
+  };
+  const audioId = str(v.audioId);
+  const mimeType = str(v.mimeType);
+  if (audioId) artifact.audioId = audioId;
+  if (typeof v.durationMs === "number" && v.durationMs >= 0) {
+    artifact.durationMs = v.durationMs;
+  }
+  if (mimeType) artifact.mimeType = mimeType;
+  return artifact;
+}
+
 function coerceSettings(value: unknown, currentTermId: string): Settings {
   const v = (value && typeof value === "object" ? value : {}) as Record<
     string,
@@ -189,6 +221,12 @@ function migrate(raw: unknown): StoreState {
     }
   }
 
+  const artifacts = Array.isArray(doc.artifacts)
+    ? doc.artifacts
+        .map((a) => coerceArtifact(a, fallbackTermId))
+        .filter((a): a is Artifact => a !== null)
+    : [];
+
   const settings = coerceSettings(doc.settings, fallbackTermId);
   // Ensure currentTermId points to a real term.
   if (!terms.some((t) => t.id === settings.currentTermId)) {
@@ -200,6 +238,7 @@ function migrate(raw: unknown): StoreState {
     terms,
     courses,
     tasks,
+    artifacts,
     settings,
   };
 }
