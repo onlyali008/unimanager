@@ -70,6 +70,7 @@ function coerceCourse(value: unknown, fallbackTermId: string): Course | null {
   if (mStart) course.meetingStart = mStart;
   if (mEnd) course.meetingEnd = mEnd;
   if (target) course.targetGrade = target;
+  if (typeof v.notes === "string") course.notes = v.notes;
   return course;
 }
 

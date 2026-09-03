@@ -61,6 +61,8 @@ export interface Course {
   meetingStart?: string;
   meetingEnd?: string;
   targetGrade?: string;
+  /** Free-form course notes (markdown-ish plain text). */
+  notes?: string;
   archived: boolean;
   createdAt: string;
 }

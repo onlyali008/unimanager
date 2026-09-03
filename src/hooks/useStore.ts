@@ -8,8 +8,15 @@ import type {
   Task,
   Term,
 } from "@/lib/types";
+import { COURSE_PALETTE } from "@/lib/types";
 import * as store from "@/lib/store";
 import { newId } from "@/lib/tasks";
+import type { DetectedCourse, DetectedTaskEvent } from "@/lib/ics";
+
+export interface ImportResult {
+  courses: number;
+  tasks: number;
+}
 
 export type TaskDraft = Omit<
   Task,
@@ -44,8 +51,14 @@ export interface UseStore {
 
   addCourse: (draft: CourseDraft) => Course;
   updateCourse: (id: string, draft: CourseDraft) => void;
+  patchCourse: (id: string, patch: Partial<Course>) => void;
   setCourseArchived: (id: string, archived: boolean) => void;
   deleteCourse: (id: string) => void;
+  importCalendar: (
+    courses: DetectedCourse[],
+    tasks: DetectedTaskEvent[],
+    importTasks: boolean,
+  ) => ImportResult;
 
   addTerm: (name: string) => Term;
   setCurrentTerm: (id: string) => void;
@@ -154,6 +167,76 @@ export function useStore(): UseStore {
     );
   }, []);
 
+  const patchCourse = useCallback((id: string, patch: Partial<Course>) => {
+    store.setCourses(
+      snap().courses.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+    );
+  }, []);
+
+  const importCalendar = useCallback(
+    (
+      detectedCourses: DetectedCourse[],
+      detectedTasks: DetectedTaskEvent[],
+      importTasks: boolean,
+    ): ImportResult => {
+      const s = snap();
+      const termId = s.settings.currentTermId;
+      const now = new Date().toISOString();
+
+      const newCourses: Course[] = detectedCourses.map((dc, i) => ({
+        id: newId(),
+        name: dc.name || dc.code || "Untitled course",
+        code: dc.code,
+        color: COURSE_PALETTE[(s.courses.length + i) % COURSE_PALETTE.length],
+        termId,
+        meetingDays: dc.meetingDays,
+        meetingStart: dc.meetingStart,
+        meetingEnd: dc.meetingEnd,
+        instructor: undefined,
+        notes: dc.location ? `Location: ${dc.location}` : undefined,
+        archived: false,
+        createdAt: now,
+      }));
+
+      // Link detected task events to a course by matching code, when possible.
+      const codeToId = new Map<string, string>();
+      for (const c of [...s.courses, ...newCourses]) {
+        if (c.code) codeToId.set(c.code.toLowerCase(), c.id);
+      }
+
+      const newTasks: Task[] = importTasks
+        ? detectedTasks.map((dt) => {
+            const codeMatch = /^([A-Za-z]{2,}[\s-]?\d{2,}[A-Za-z]?)/.exec(
+              dt.title,
+            );
+            const courseId = codeMatch
+              ? codeToId.get(codeMatch[1].replace(/\s+/g, " ").toLowerCase())
+              : undefined;
+            return {
+              id: newId(),
+              title: dt.title,
+              type: dt.type,
+              termId,
+              courseId,
+              dueAt: dt.dueAt,
+              priority: dt.type === "exam" ? "high" : "medium",
+              completed: false,
+              createdAt: now,
+            };
+          })
+        : [];
+
+      store.replaceStore({
+        ...s,
+        courses: [...s.courses, ...newCourses],
+        tasks: [...newTasks, ...s.tasks],
+      });
+
+      return { courses: newCourses.length, tasks: newTasks.length };
+    },
+    [],
+  );
+
   const setCourseArchived = useCallback((id: string, archived: boolean) => {
     store.setCourses(
       snap().courses.map((c) => (c.id === id ? { ...c, archived } : c)),
@@ -207,8 +290,10 @@ export function useStore(): UseStore {
     scheduleStudySession,
     addCourse,
     updateCourse,
+    patchCourse,
     setCourseArchived,
     deleteCourse,
+    importCalendar,
     addTerm,
     setCurrentTerm,
     updateSettings,

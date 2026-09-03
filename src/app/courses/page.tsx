@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import type { Course } from "@/lib/types";
 import { useStore } from "@/hooks/useStore";
 import { CourseForm } from "@/components/CourseForm";
+import { ImportDialog } from "@/components/ImportDialog";
 import {
   coursesInTerm,
   formatDue,
@@ -22,6 +24,7 @@ export default function CoursesPage() {
     updateCourse,
     setCourseArchived,
     deleteCourse,
+    importCalendar,
   } = useStore();
   const termId = settings.currentTermId;
 
@@ -29,6 +32,8 @@ export default function CoursesPage() {
   const [editing, setEditing] = useState<Course | null>(null);
   const [formKey, setFormKey] = useState(0);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importKey, setImportKey] = useState(0);
   const [message, setMessage] = useState("");
 
   const termCourses = useMemo(
@@ -78,9 +83,21 @@ export default function CoursesPage() {
             Everything you&apos;re taking this term, with its live workload.
           </p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={openNew}>
-          + New course
-        </button>
+        <div className="header-actions">
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => {
+              setImportKey((k) => k + 1);
+              setImportOpen(true);
+            }}
+          >
+            Import from calendar
+          </button>
+          <button type="button" className="btn btn-primary" onClick={openNew}>
+            + New course
+          </button>
+        </div>
       </header>
 
       <div aria-live="polite" className="sr-only">
@@ -118,7 +135,14 @@ export default function CoursesPage() {
                       <p className="course-code" style={{ color: course.color }}>
                         {course.code || "—"}
                       </p>
-                      <h2 className="course-name">{course.name}</h2>
+                      <h2 className="course-name">
+                        <Link
+                          href={`/courses/${course.id}`}
+                          className="course-name-link"
+                        >
+                          {course.name}
+                        </Link>
+                      </h2>
                       {course.instructor && (
                         <p className="muted-note">{course.instructor}</p>
                       )}
@@ -250,6 +274,26 @@ export default function CoursesPage() {
           setFormOpen(false);
           setEditing(null);
         }}
+      />
+
+      <ImportDialog
+        key={importKey}
+        open={importOpen}
+        onImport={(detectedCourses, detectedTasks, withTasks) => {
+          const result = importCalendar(
+            detectedCourses,
+            detectedTasks,
+            withTasks,
+          );
+          setMessage(
+            `Imported ${result.courses} ${
+              result.courses === 1 ? "course" : "courses"
+            }` +
+              (result.tasks > 0 ? ` and ${result.tasks} tasks.` : "."),
+          );
+          return result;
+        }}
+        onClose={() => setImportOpen(false)}
       />
     </div>
   );
