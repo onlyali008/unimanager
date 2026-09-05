@@ -1,38 +1,61 @@
 # Semestra
 
 A calm, local-first semester planner. Semestra turns your courses, assignments,
-and exams into a clear, prioritized daily plan — and keeps everything in your
-own browser. No account, no server, no upload.
+exams, and study time into a clear daily plan — and keeps everything in your own
+browser. No account, no server, no upload.
 
 ## Features
 
 - **Dashboard** — greeting, a live summary (overdue / due today / upcoming /
-  completed), today's schedule, and tasks grouped by urgency.
-- **Tasks** — create, edit, complete/reopen, delete. Types: assignment, exam,
-  reading, project, study session. Each with course, due date/time, priority,
-  estimate, and notes. Filter and search by status, course, type, and text.
-  Safe deletion with undo.
-- **Courses** — full CRUD with code, instructor, color, weekly meeting schedule,
-  and an optional target grade. Each card shows its live workload and next
-  deadline. Archive courses you're done with.
-- **Calendar** — a week view and an agenda view that combine recurring class
-  meetings, task due dates, and study sessions. Schedule a study session
-  straight from any task; it lands on the calendar and dashboard.
-- **Progress** — honest per-course and term-level task completion. Semestra does
-  not invent grades; "target grade" is just a note you set.
-- **Terms** — organize everything by term and switch between them.
-- **Settings** — theme (system/light/dark), density, term management, and data
-  export / import / reset.
-- Keyboard-accessible, responsive (navigation rail on desktop, stacked on
-  mobile), light/dark, and `prefers-reduced-motion` aware.
+  completed), a **"Focus now"** recommendation of your most pressing tasks,
+  **exam countdowns**, today's schedule with estimated workload, and **inline
+  quick-add** (type a title, press Enter).
+- **Tasks** — create, edit, complete/reopen, delete. Types for assignment,
+  exam, reading, project, and study session, each with course, due date/time,
+  priority, estimate, and notes. Filter and search; safe delete with undo.
+- **Courses** — full CRUD with code, instructor, color, weekly meeting schedule.
+  Each course has a detail page with:
+  - **Grades** — weighted categories, a per-course percentage→letter scale
+    (from your syllabus), a current letter grade + **4.0 GPA**, and "what you
+    need on the rest to hit your target."
+  - **Syllabus upload** (stored locally in your browser).
+  - **Artifacts** — notes, live-dictation transcripts, and audio **lecture
+    recordings**, each opened in an editable panel (markdown preview included).
+- **Calendar** — interactive **week** and **agenda** views combining class
+  meetings, deadlines, and study sessions. Click a task to edit, tick it done,
+  or click a day to add one. Import your timetable from an **`.ics` file** and
+  Semestra detects your courses automatically.
+- **Study timer** — a Pomodoro timer that survives navigation and page reloads,
+  alerts you (chime, notification, title flash) when a block ends, and logs
+  focus time to a task. **Focus streaks** and weekly totals on Progress.
+- **Progress** — term GPA (4.0), each course's current grade, task completion,
+  and your study-focus streak.
+- **Assistant** — a chat grounded in your schedule, powered by a local **Ollama**
+  model (private, offline). Configurable in Settings.
+- **Terms**, **theme** (system/light/dark), **density**, full **JSON backup**
+  (audio recordings included), and **keyboard shortcuts** (press `?`).
+- Keyboard-accessible, responsive (sidebar rail on desktop, bottom tab bar on
+  mobile), and `prefers-reduced-motion` aware.
 
 ## Data & privacy
 
-All data stays in your browser's `localStorage` under the `semestra.*` keys,
-through a typed, schema-versioned storage layer that validates every record and
-recovers gracefully from corrupt data (older v1 data is migrated automatically).
-Export produces a plain JSON file you control; import replaces your current data
-with a validated file.
+Everything is stored in your browser: the plan in `localStorage`, and audio /
+syllabus files in IndexedDB. Nothing is uploaded. A typed, schema-versioned
+storage layer validates every record and migrates older data automatically.
+Export produces a single JSON file you control (with recordings embedded);
+import previews the change and replaces your data only after you confirm.
+
+## The assistant (optional)
+
+The assistant talks to a local [Ollama](https://ollama.com) server from your
+browser, so it needs to be allowed to reach it:
+
+```bash
+ollama pull llama3.2:1b
+OLLAMA_ORIGINS=http://localhost:3000 ollama serve
+```
+
+Then set the URL/model in **Settings → AI assistant** (default `llama3.2:1b`).
 
 ## Getting started
 
@@ -45,40 +68,43 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Scripts
 
-- `npm run dev` — start the dev server
+- `npm run dev` — dev server
 - `npm run build` — production build
 - `npm run start` — serve the production build
 - `npm run lint` — ESLint
-- `npm test` — run the Vitest unit suite
+- `npm test` — Vitest unit suite
 
 ## Architecture
 
 ```
 src/
-  app/
-    page.tsx        Dashboard
-    courses/        Course management
-    calendar/       Week + agenda views
-    progress/       Completion progress
-    settings/       Appearance, terms, data
-    layout.tsx      Root layout + metadata
-    error / loading / not-found
-    robots.ts, sitemap.ts
-  components/       AppShell, TaskForm, TaskItem, CourseForm, ScheduleDialog
-  hooks/
-    useStore.ts     Reads store via useSyncExternalStore; all mutations
+  app/            Routes: dashboard, courses, courses/[id], calendar, timer,
+                  progress, assistant, settings, + error/loading/not-found,
+                  robots.ts, sitemap.ts
+  components/     AppShell, TaskForm, TaskItem, CourseForm, CourseGrades,
+                  ImportDialog, ArtifactViewer, AudioRecorder, ScheduleDialog,
+                  TimerWidget, GlobalShortcuts
+  hooks/          useStore, useTimer, useDictation, useIsClient
   lib/
-    types.ts        Domain model (Task, Course, Term, Settings) + schema version
-    storage.ts      Load/save, validation, v1→v2 migration, recovery
-    store.ts        External store powering useSyncExternalStore
-    tasks.ts        Sorting, filtering, bucketing, calendar, formatting
-    seed.ts         First-run demo dataset
-    *.test.ts       Vitest unit tests
+    types.ts      Domain model + schema version
+    storage.ts    Load/save, validation, migration, recovery
+    store.ts      External store (useSyncExternalStore)
+    tasks.ts      Sorting, filtering, buckets, calendar, recommendations
+    grades.ts     Weighted grades, letters, GPA
+    focus.ts      Study-focus streaks/totals
+    ics.ts        Calendar (.ics) parsing + course detection
+    assistant.ts  Ollama streaming + schedule context
+    timerStore.ts Pomodoro timer singleton
+    audioStore.ts / fileStore.ts   IndexedDB blob stores
+    backup.ts     Full export/import (incl. audio)
+    markdown.ts   Safe minimal markdown renderer
+    *.test.ts     Vitest unit tests
 ```
 
 ## Testing & CI
 
-`npm test` covers deadline bucketing, sorting, filtering/search, the summary and
-calendar builders, and storage migration/validation/recovery. GitHub Actions
+`npm test` covers deadline bucketing/sorting/filtering, recommendations,
+calendar building, `.ics` parsing/detection, storage migration/validation,
+grade math, focus streaks, and the markdown renderer. GitHub Actions
 (`.github/workflows/ci.yml`) runs lint, typecheck, tests, build, and a
 production dependency audit on every push and pull request.
