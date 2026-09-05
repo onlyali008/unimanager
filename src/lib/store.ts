@@ -70,6 +70,20 @@ export function setTasks(tasks: Task[]): void {
   commit({ ...ensureLoaded(), tasks });
 }
 
+/** Add focused minutes to a task's logged total (used by the study timer). */
+export function logTaskMinutes(taskId: string, minutes: number): void {
+  if (minutes <= 0) return;
+  const s = ensureLoaded();
+  commit({
+    ...s,
+    tasks: s.tasks.map((t) =>
+      t.id === taskId
+        ? { ...t, loggedMinutes: (t.loggedMinutes ?? 0) + minutes }
+        : t,
+    ),
+  });
+}
+
 /* --- Courses ------------------------------------------------------- */
 export function setCourses(courses: Course[]): void {
   commit({ ...ensureLoaded(), courses });

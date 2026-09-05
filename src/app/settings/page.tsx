@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import type { Density, ThemePref } from "@/lib/types";
 import { useStore } from "@/hooks/useStore";
 import * as storeApi from "@/lib/store";
-import { exportJSON, importJSON } from "@/lib/storage";
+import { buildBackup, restoreBackup } from "@/lib/backup";
 import { listOllamaModels } from "@/lib/assistant";
 
 export default function SettingsPage() {
@@ -30,35 +30,55 @@ export default function SettingsPage() {
     setMessage(text);
   }
 
-  function handleExport() {
-    const data = exportJSON(storeApi.getSnapshot());
-    const blob = new Blob([data], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "semestra-data.json";
-    a.click();
-    URL.revokeObjectURL(url);
-    announce("Exported your data.");
+  const [busy, setBusy] = useState(false);
+
+  async function handleExport() {
+    setBusy(true);
+    try {
+      const { json, stats } = await buildBackup(storeApi.getSnapshot());
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "semestra-data.json";
+      a.click();
+      URL.revokeObjectURL(url);
+      announce(
+        `Exported your data${
+          stats.recordings > 0
+            ? ` including ${stats.recordings} recording${
+                stats.recordings === 1 ? "" : "s"
+              }`
+            : ""
+        }.`,
+      );
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const state = importJSON(String(reader.result));
-        replaceAll(state);
-        announce(
-          `Imported ${state.tasks.length} tasks and ${state.courses.length} courses.`,
-        );
-      } catch {
-        announce("That file could not be imported. Expected Semestra JSON.");
-      }
-    };
-    reader.readAsText(file);
     e.target.value = "";
+    if (!file) return;
+    setBusy(true);
+    try {
+      const text = await file.text();
+      const { state, stats } = await restoreBackup(text);
+      replaceAll(state);
+      announce(
+        `Imported ${state.tasks.length} tasks, ${state.courses.length} courses` +
+          (stats.recordings > 0
+            ? `, and ${stats.recordings} recording${
+                stats.recordings === 1 ? "" : "s"
+              }.`
+            : "."),
+      );
+    } catch {
+      announce("That file could not be imported. Expected Semestra JSON.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function testConnection() {
@@ -258,22 +278,25 @@ export default function SettingsPage() {
           <section className="card settings-section">
             <h2 className="group-title">Your data</h2>
             <p className="muted-note">
-              Everything lives in this browser&apos;s local storage. Nothing is
-              uploaded. Export makes a JSON backup you control; import replaces
-              your current data with a validated file.
+              Everything lives in this browser only. Nothing is uploaded.
+              Export makes a JSON backup you control — audio recordings are
+              embedded in it — and import replaces your current data with a
+              validated file.
             </p>
             <div className="data-buttons">
               <button
                 type="button"
                 className="btn btn-ghost"
                 onClick={handleExport}
+                disabled={busy}
               >
-                Export JSON
+                {busy ? "Working…" : "Export JSON"}
               </button>
               <button
                 type="button"
                 className="btn btn-ghost"
                 onClick={() => fileRef.current?.click()}
+                disabled={busy}
               >
                 Import JSON
               </button>

@@ -81,6 +81,11 @@ export function TaskItem({
             {formatDue(task.dueAt)}
           </span>
           {duration && <span className="task-duration">· {duration}</span>}
+          {task.loggedMinutes ? (
+            <span className="task-logged">
+              · {formatDuration(task.loggedMinutes)} logged
+            </span>
+          ) : null}
         </div>
         {task.notes && <p className="task-notes">{task.notes}</p>}
       </div>

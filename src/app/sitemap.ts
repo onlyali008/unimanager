@@ -10,6 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "",
     "/courses",
     "/calendar",
+    "/timer",
     "/progress",
     "/assistant",
     "/settings",

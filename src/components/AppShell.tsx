@@ -4,11 +4,13 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useStore } from "@/hooks/useStore";
+import { TimerWidget } from "@/components/TimerWidget";
 
 const NAV = [
   { href: "/", label: "Dashboard" },
   { href: "/courses", label: "Courses" },
   { href: "/calendar", label: "Calendar" },
+  { href: "/timer", label: "Timer" },
   { href: "/progress", label: "Progress" },
   { href: "/assistant", label: "Assistant" },
   { href: "/settings", label: "Settings" },
@@ -77,6 +79,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main id="main" className="content">
         {children}
       </main>
+
+      <TimerWidget />
     </div>
   );
 }

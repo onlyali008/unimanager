@@ -77,6 +77,8 @@ export interface Task {
   dueAt?: string;
   priority: Priority;
   estimatedMinutes?: number;
+  /** Actual focused minutes logged via the study timer. */
+  loggedMinutes?: number;
   notes?: string;
   completed: boolean;
   completedAt?: string;

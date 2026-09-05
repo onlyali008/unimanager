@@ -100,6 +100,9 @@ function coerceTask(value: unknown, fallbackTermId: string): Task | null {
   if (typeof v.estimatedMinutes === "number" && v.estimatedMinutes >= 0) {
     task.estimatedMinutes = v.estimatedMinutes;
   }
+  if (typeof v.loggedMinutes === "number" && v.loggedMinutes >= 0) {
+    task.loggedMinutes = v.loggedMinutes;
+  }
   if (typeof v.notes === "string") task.notes = v.notes;
   if (task.completed && isoOrUndef(v.completedAt)) {
     task.completedAt = v.completedAt as string;

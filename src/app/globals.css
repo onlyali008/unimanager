@@ -1491,3 +1491,82 @@ body {
 .chat-input .field-input {
   flex: 1;
 }
+
+/* --- Study timer --------------------------------------------------- */
+.timer-card {
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  border-top: 4px solid var(--accent);
+}
+.timer-card[data-mode="break"] {
+  border-top-color: var(--success);
+}
+.timer-mode-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.timer-card[data-mode="break"] .timer-mode-label {
+  color: var(--success);
+}
+.timer-clock {
+  font-size: clamp(3.5rem, 14vw, 6rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.timer-controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.timer-durations {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.timer-logged {
+  margin-top: 0.35rem;
+}
+.task-logged {
+  color: var(--success);
+  font-weight: 600;
+}
+
+/* Floating widget */
+.timer-widget {
+  position: fixed;
+  left: 1rem;
+  bottom: 1.25rem;
+  z-index: 55;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem 0.5rem 0.85rem;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  box-shadow: var(--shadow-card);
+}
+.timer-widget[data-mode="break"] {
+  border-color: var(--success);
+}
+.timer-widget-mode {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.timer-widget-clock {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
