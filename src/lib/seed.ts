@@ -181,6 +181,7 @@ export function createSeedState(): StoreState {
     courses,
     tasks,
     artifacts: [],
+    focusLog: [],
     settings: {
       theme: "system",
       density: "comfortable",

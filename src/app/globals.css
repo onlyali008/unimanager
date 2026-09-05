@@ -2005,3 +2005,33 @@ body {
     bottom: 4rem;
   }
 }
+
+/* --- Focus stats --------------------------------------------------- */
+.focus-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  border-inline-start: 4px solid var(--success);
+}
+.focus-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.focus-stat-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.focus-stat-unit {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* Subtle tint so overdue work stands out beyond red text alone. */
+.task-row[data-bucket="overdue"] {
+  background: color-mix(in srgb, var(--danger-soft) 55%, var(--surface));
+}

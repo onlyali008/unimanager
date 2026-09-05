@@ -10,6 +10,19 @@ import type {
 } from "./types";
 import { clearAll, loadState, resetToDemo, saveState } from "./storage";
 import { createSeedState } from "./seed";
+import { deleteAudio } from "./audioStore";
+
+/** Best-effort delete of audio blobs whose artifacts no longer exist. */
+function cleanupAudio(oldArtifacts: Artifact[], nextArtifacts: Artifact[]): void {
+  const keep = new Set(
+    nextArtifacts.filter((a) => a.audioId).map((a) => a.audioId),
+  );
+  for (const a of oldArtifacts) {
+    if (a.kind === "audio" && a.audioId && !keep.has(a.audioId)) {
+      void deleteAudio(a.audioId).catch(() => {});
+    }
+  }
+}
 
 // Stable empty-ish snapshot for SSR/hydration. Uses the seed's shape but no
 // data, so server and client initial markup agree.
@@ -18,6 +31,7 @@ const SERVER_SNAPSHOT: StoreState = {
   tasks: [],
   courses: [],
   artifacts: [],
+  focusLog: [],
 };
 
 let current: StoreState | null = null;
@@ -84,6 +98,26 @@ export function logTaskMinutes(taskId: string, minutes: number): void {
   });
 }
 
+function todayKey(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** Record focused minutes against today's date (for streaks/history). */
+export function logFocus(minutes: number): void {
+  if (minutes <= 0) return;
+  const s = ensureLoaded();
+  const date = todayKey();
+  const existing = s.focusLog.find((e) => e.date === date);
+  const focusLog = existing
+    ? s.focusLog.map((e) =>
+        e.date === date ? { ...e, minutes: e.minutes + minutes } : e,
+      )
+    : [...s.focusLog, { date, minutes }];
+  commit({ ...s, focusLog });
+}
+
 /* --- Courses ------------------------------------------------------- */
 export function setCourses(courses: Course[]): void {
   commit({ ...ensureLoaded(), courses });
@@ -106,7 +140,9 @@ export function setSettings(settings: Settings): void {
 
 /* --- Whole-store operations --------------------------------------- */
 export function resetDemoStore(): void {
+  const old = ensureLoaded().artifacts;
   current = resetToDemo();
+  cleanupAudio(old, current.artifacts);
   emit();
 }
 
@@ -118,9 +154,12 @@ export function clearStore(): void {
 /** Remove all tasks, courses, and artifacts (keep terms + settings). */
 export function startFresh(): void {
   const s = ensureLoaded();
+  cleanupAudio(s.artifacts, []);
   commit({ ...s, tasks: [], courses: [], artifacts: [] });
 }
 
 export function replaceStore(state: StoreState): void {
+  const old = ensureLoaded().artifacts;
+  cleanupAudio(old, state.artifacts);
   commit(state);
 }

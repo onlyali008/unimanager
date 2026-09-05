@@ -2,6 +2,7 @@ import type {
   Artifact,
   ArtifactKind,
   Course,
+  FocusEntry,
   GradeBand,
   GradeCategory,
   GradeItem,
@@ -316,6 +317,19 @@ function migrate(raw: unknown): StoreState {
         .filter((a): a is Artifact => a !== null)
     : [];
 
+  const focusLog = Array.isArray(doc.focusLog)
+    ? doc.focusLog
+        .map((e): FocusEntry | null => {
+          if (!e || typeof e !== "object") return null;
+          const r = e as Record<string, unknown>;
+          const date = str(r.date);
+          const minutes = num(r.minutes);
+          if (!date || minutes === null || minutes < 0) return null;
+          return { date, minutes };
+        })
+        .filter((e): e is FocusEntry => e !== null)
+    : [];
+
   const settings = coerceSettings(doc.settings, fallbackTermId);
   // Ensure currentTermId points to a real term.
   if (!terms.some((t) => t.id === settings.currentTermId)) {
@@ -328,6 +342,7 @@ function migrate(raw: unknown): StoreState {
     courses,
     tasks,
     artifacts,
+    focusLog,
     settings,
   };
 }

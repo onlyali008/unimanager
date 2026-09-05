@@ -5,6 +5,7 @@ import type {
   Artifact,
   ArtifactKind,
   Course,
+  FocusEntry,
   Settings,
   StoreState,
   Task,
@@ -52,6 +53,7 @@ export interface UseStore {
   courses: Course[];
   tasks: Task[];
   artifacts: Artifact[];
+  focusLog: FocusEntry[];
   settings: Settings;
 
   addTask: (draft: TaskDraft) => Task;
@@ -280,6 +282,8 @@ export function useStore(): UseStore {
       tasks: s.tasks.map((t) =>
         t.courseId === id ? { ...t, courseId: undefined } : t,
       ),
+      // Remove the course's artifacts (replaceStore cleans up their audio).
+      artifacts: s.artifacts.filter((a) => a.courseId !== id),
     });
   }, []);
 
@@ -351,6 +355,7 @@ export function useStore(): UseStore {
     courses: state.courses,
     tasks: state.tasks,
     artifacts: state.artifacts,
+    focusLog: state.focusLog,
     settings: state.settings,
     addTask,
     updateTask,

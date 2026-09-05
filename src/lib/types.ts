@@ -200,12 +200,20 @@ export interface Settings {
 export const DEFAULT_OLLAMA_URL = "http://localhost:11434";
 export const DEFAULT_OLLAMA_MODEL = "llama3.2:1b";
 
+/** Minutes of focused study logged on a given local calendar day. */
+export interface FocusEntry {
+  /** Local date, "YYYY-MM-DD". */
+  date: string;
+  minutes: number;
+}
+
 export interface StoreState {
   version: number;
   terms: Term[];
   courses: Course[];
   tasks: Task[];
   artifacts: Artifact[];
+  focusLog: FocusEntry[];
   settings: Settings;
 }
 

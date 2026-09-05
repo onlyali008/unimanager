@@ -3,7 +3,7 @@
 // paused on reload) and block completions raise an audible + visible alert.
 // Completed focus blocks log their minutes against the selected task.
 
-import { logTaskMinutes } from "./store";
+import { logFocus, logTaskMinutes } from "./store";
 
 export type TimerMode = "focus" | "break";
 
@@ -203,6 +203,7 @@ function onTick(): void {
 
 function complete(): void {
   if (state.mode === "focus") {
+    logFocus(Math.round(state.focusMin));
     if (state.taskId) logTaskMinutes(state.taskId, Math.round(state.focusMin));
     elapsedFocusMs = 0;
     lastTick = Date.now();
@@ -273,7 +274,10 @@ export function reset(): void {
 /** Log the minutes focused so far in the current block, then reset. */
 export function logAndReset(): void {
   const minutes = Math.round(elapsedFocusMs / 60_000);
-  if (state.taskId && minutes > 0) logTaskMinutes(state.taskId, minutes);
+  if (minutes > 0) {
+    logFocus(minutes);
+    if (state.taskId) logTaskMinutes(state.taskId, minutes);
+  }
   reset();
 }
 
@@ -281,7 +285,10 @@ export function skip(): void {
   flashTitle(null);
   if (state.mode === "focus") {
     const minutes = Math.round(elapsedFocusMs / 60_000);
-    if (state.taskId && minutes > 0) logTaskMinutes(state.taskId, minutes);
+    if (minutes > 0) {
+      logFocus(minutes);
+      if (state.taskId) logTaskMinutes(state.taskId, minutes);
+    }
     elapsedFocusMs = 0;
     lastTick = Date.now();
     set({ mode: "break", remainingMs: state.breakMin * 60_000 });

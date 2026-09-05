@@ -2,16 +2,19 @@
 
 import { useMemo } from "react";
 import { useStore } from "@/hooks/useStore";
-import { coursesInTerm, tasksInTerm } from "@/lib/tasks";
+import { coursesInTerm, formatDuration, tasksInTerm } from "@/lib/tasks";
 import { computeCourseGrade, computeTermGpa } from "@/lib/grades";
+import { focusStats } from "@/lib/focus";
 
 function pct(done: number, total: number): number {
   return total === 0 ? 0 : Math.round((done / total) * 100);
 }
 
 export default function ProgressPage() {
-  const { tasks, courses, settings, ready } = useStore();
+  const { tasks, courses, focusLog, settings, ready } = useStore();
   const termId = settings.currentTermId;
+
+  const focus = useMemo(() => focusStats(focusLog), [focusLog]);
 
   const termTasks = useMemo(() => tasksInTerm(tasks, termId), [tasks, termId]);
   const termCourses = useMemo(
@@ -65,6 +68,32 @@ export default function ProgressPage() {
         <p className="muted-note">No courses or tasks in this term yet.</p>
       ) : (
         <>
+          {focus.weekMinutes > 0 && (
+            <section className="card focus-stats" aria-label="Study focus">
+              <div className="focus-stat">
+                <span className="focus-stat-value">
+                  {focus.streakDays}
+                  <span className="focus-stat-unit">
+                    {focus.streakDays === 1 ? " day" : " days"}
+                  </span>
+                </span>
+                <span className="summary-label">Focus streak 🔥</span>
+              </div>
+              <div className="focus-stat">
+                <span className="focus-stat-value">
+                  {formatDuration(focus.weekMinutes) ?? "0m"}
+                </span>
+                <span className="summary-label">This week</span>
+              </div>
+              <div className="focus-stat">
+                <span className="focus-stat-value">
+                  {formatDuration(focus.todayMinutes) ?? "0m"}
+                </span>
+                <span className="summary-label">Today</span>
+              </div>
+            </section>
+          )}
+
           {termGpa.gpa !== null && (
             <section className="card gpa-card" aria-label="Term GPA">
               <div className="progress-head">
