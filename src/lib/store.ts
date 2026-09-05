@@ -115,6 +115,12 @@ export function clearStore(): void {
   emit();
 }
 
+/** Remove all tasks, courses, and artifacts (keep terms + settings). */
+export function startFresh(): void {
+  const s = ensureLoaded();
+  commit({ ...s, tasks: [], courses: [], artifacts: [] });
+}
+
 export function replaceStore(state: StoreState): void {
   commit(state);
 }

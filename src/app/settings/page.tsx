@@ -52,6 +52,8 @@ export default function SettingsPage() {
             : ""
         }.`,
       );
+    } catch {
+      announce("Export failed — your data may be too large to bundle at once.");
     } finally {
       setBusy(false);
     }

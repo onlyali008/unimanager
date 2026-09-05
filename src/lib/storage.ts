@@ -189,19 +189,24 @@ function migrate(raw: unknown): StoreState {
         .filter((c): c is Course => c !== null)
     : [];
 
-  const tasks = rawTasks
-    .map((t) => coerceTask(t, fallbackTermId))
-    .filter((t): t is Task => t !== null);
+  // Keep each coerced task paired with its raw source, so dropping invalid
+  // records never desyncs the two when we link courses below.
+  const taskPairs = rawTasks
+    .map((rawTask) => ({ raw: rawTask, task: coerceTask(rawTask, fallbackTermId) }))
+    .filter((p): p is { raw: unknown; task: Task } => p.task !== null);
+  const tasks = taskPairs.map((p) => p.task);
 
   // v1 → v2: derive courses from legacy free-text `course` labels.
   if (version < 2) {
     const byLabel = new Map<string, Course>();
     let colorIdx = 0;
-    for (const raw2 of rawTasks) {
-      const label =
-        raw2 && typeof raw2 === "object"
-          ? str((raw2 as Record<string, unknown>).course)
-          : undefined;
+    const labelOf = (rec: unknown): string | undefined =>
+      rec && typeof rec === "object"
+        ? str((rec as Record<string, unknown>).course)
+        : undefined;
+
+    for (const { raw: rawTask } of taskPairs) {
+      const label = labelOf(rawTask);
       if (label && !byLabel.has(label)) {
         const course: Course = {
           id: `course-${byLabel.size + 1}`,
@@ -218,12 +223,11 @@ function migrate(raw: unknown): StoreState {
       }
     }
     courses = [...courses, ...byLabel.values()];
-    // Link tasks to the derived courses by their original label.
-    for (let i = 0; i < tasks.length; i += 1) {
-      const original = rawTasks[i] as Record<string, unknown> | undefined;
-      const label = original ? str(original.course) : undefined;
+    // Link each task to its course using its own raw record's label.
+    for (const { raw: rawTask, task } of taskPairs) {
+      const label = labelOf(rawTask);
       if (label && byLabel.has(label)) {
-        tasks[i].courseId = byLabel.get(label)!.id;
+        task.courseId = byLabel.get(label)!.id;
       }
     }
   }

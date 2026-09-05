@@ -21,20 +21,38 @@ function safeHref(url: string): string | null {
   return null;
 }
 
+// Sentinel wrapping a stash index. Uses characters the emphasis regexes never
+// match, and HTML-escaping removes any user-supplied "<"/">" so real input
+// cannot forge one of these tokens.
+function open(i: number): string {
+  return `STASH${i}`;
+}
+
 function inline(text: string): string {
+  const stash: string[] = [];
+  const hold = (htmlValue: string): string => {
+    stash.push(htmlValue);
+    return open(stash.length - 1);
+  };
+
   let out = text;
-  // Inline code first, so its contents are not further transformed.
-  out = out.replace(/`([^`]+)`/g, (_m, code) => `<code>${code}</code>`);
-  // Links [text](url)
+  // Inline code and links become placeholders first, protecting their
+  // contents (especially URLs) from the emphasis passes.
+  out = out.replace(/`([^`]+)`/g, (_m, code) => hold(`<code>${code}</code>`));
   out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label, url) => {
     const href = safeHref(url);
     if (!href) return label;
-    return `<a href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+    return hold(
+      `<a href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`,
+    );
   });
-  // Bold then italic.
+
   out = out.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
   out = out.replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>");
   out = out.replace(/_([^_]+)_/g, "<em>$1</em>");
+
+  // Restore stashed spans.
+  out = out.replace(/STASH(\d+)/g, (_m, i) => stash[Number(i)] ?? "");
   return out;
 }
 

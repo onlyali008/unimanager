@@ -89,6 +89,7 @@ export interface UseStore {
 
   resetDemo: () => void;
   clear: () => void;
+  startFresh: () => void;
   replaceAll: (state: StoreState) => void;
 }
 
@@ -333,6 +334,7 @@ export function useStore(): UseStore {
 
   const resetDemo = useCallback(() => store.resetDemoStore(), []);
   const clear = useCallback(() => store.clearStore(), []);
+  const startFresh = useCallback(() => store.startFresh(), []);
   const replaceAll = useCallback(
     (next: StoreState) => store.replaceStore(next),
     [],
@@ -365,6 +367,7 @@ export function useStore(): UseStore {
     updateSettings,
     resetDemo,
     clear,
+    startFresh,
     replaceAll,
   };
 }

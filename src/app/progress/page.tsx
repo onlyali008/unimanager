@@ -66,7 +66,11 @@ export default function ProgressPage() {
               <h2 className="group-title">Term completion</h2>
               <span className="progress-figure">{overall.percent}%</span>
             </div>
-            <ProgressBar percent={overall.percent} color="var(--accent)" />
+            <ProgressBar
+              percent={overall.percent}
+              color="var(--accent)"
+              label="Term completion"
+            />
             <p className="muted-note">
               {overall.done} of {overall.total} tasks completed.
             </p>
@@ -84,7 +88,11 @@ export default function ProgressPage() {
                   </div>
                   <span className="progress-figure">{percent}%</span>
                 </div>
-                <ProgressBar percent={percent} color={course.color} />
+                <ProgressBar
+                  percent={percent}
+                  color={course.color}
+                  label={`${course.name} completion`}
+                />
                 <div className="course-stats">
                   <span className="muted-note">
                     {done} of {total} tasks completed
@@ -107,6 +115,7 @@ export default function ProgressPage() {
                 <ProgressBar
                   percent={uncategorized.percent}
                   color="var(--muted)"
+                  label="Tasks with no course, completion"
                 />
                 <p className="muted-note">
                   {uncategorized.done} of {uncategorized.total} tasks completed
@@ -126,11 +135,20 @@ export default function ProgressPage() {
   );
 }
 
-function ProgressBar({ percent, color }: { percent: number; color: string }) {
+function ProgressBar({
+  percent,
+  color,
+  label,
+}: {
+  percent: number;
+  color: string;
+  label: string;
+}) {
   return (
     <div
       className="progress-bar"
       role="progressbar"
+      aria-label={label}
       aria-valuenow={percent}
       aria-valuemin={0}
       aria-valuemax={100}

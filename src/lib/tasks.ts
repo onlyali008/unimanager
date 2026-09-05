@@ -36,6 +36,77 @@ export function sortTasks(tasks: Task[]): Task[] {
   });
 }
 
+/** Whole days from today until a due date (negative = past). */
+export function daysUntil(dueAt: string, now: Date = new Date()): number {
+  const due = startOfDay(new Date(dueAt));
+  const today = startOfDay(now);
+  return Math.round((due.getTime() - today.getTime()) / 86_400_000);
+}
+
+/** Human "in 3 days" / "today" / "tomorrow" / "2 days ago" label. */
+export function relativeDays(dueAt: string, now: Date = new Date()): string {
+  const d = daysUntil(dueAt, now);
+  if (d === 0) return "today";
+  if (d === 1) return "tomorrow";
+  if (d === -1) return "yesterday";
+  if (d > 1) return `in ${d} days`;
+  return `${Math.abs(d)} days ago`;
+}
+
+/** Non-overdue exams with a due date, soonest first. */
+export function upcomingExams(tasks: Task[], now: Date = new Date()): Task[] {
+  return sortTasks(
+    tasks.filter(
+      (t) =>
+        !t.completed &&
+        t.type === "exam" &&
+        t.dueAt &&
+        dueBucket(t, now) !== "overdue",
+    ),
+  );
+}
+
+/** Sum of estimated minutes for incomplete tasks in the set. */
+export function totalEstimateMinutes(tasks: Task[]): number {
+  return tasks.reduce(
+    (sum, t) => sum + (t.completed ? 0 : t.estimatedMinutes ?? 0),
+    0,
+  );
+}
+
+function urgencyScore(task: Task, now: Date): number {
+  let score = 0;
+  const bucket = dueBucket(task, now);
+  if (bucket === "overdue") score += 100;
+  else if (bucket === "today") score += 60;
+  else if (bucket === "upcoming" && task.dueAt) {
+    score += Math.max(0, 40 - daysUntil(task.dueAt, now) * 5);
+  }
+  score += task.priority === "high" ? 20 : task.priority === "medium" ? 8 : 0;
+  if (task.type === "exam") score += 15;
+  return score;
+}
+
+/** Heuristic "what should I do now" — the most pressing 1–N active tasks. */
+export function recommendTasks(
+  tasks: Task[],
+  now: Date = new Date(),
+  limit = 3,
+): Task[] {
+  return tasks
+    .filter((t) => !t.completed)
+    .map((t) => ({ t, score: urgencyScore(t, now) }))
+    .filter((s) => s.score > 0)
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        (a.t.dueAt ? Date.parse(a.t.dueAt) : Infinity) -
+          (b.t.dueAt ? Date.parse(b.t.dueAt) : Infinity),
+    )
+    .slice(0, limit)
+    .map((s) => s.t);
+}
+
 export interface TaskFilters {
   search: string;
   courseId: string | "all";

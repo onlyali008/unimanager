@@ -1,18 +1,26 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Task } from "@/lib/types";
 import { TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/types";
 import { useStore } from "@/hooks/useStore";
+import * as timer from "@/lib/timerStore";
 import {
   courseMap,
   coursesInTerm,
+  daysUntil,
   dueBucket,
   filterTasks,
+  formatDuration,
   itemsForDay,
+  recommendTasks,
+  relativeDays,
   sortTasks,
   summarize,
   tasksInTerm,
+  totalEstimateMinutes,
+  upcomingExams,
   type DueBucket,
   type TaskFilters,
 } from "@/lib/tasks";
@@ -34,9 +42,10 @@ const BUCKET_TITLES: Record<DueBucket, string> = {
   someday: "No due date",
 };
 const BUCKET_ORDER: DueBucket[] = ["overdue", "today", "upcoming", "someday"];
+const ONBOARDED_KEY = "semestra.onboarded";
 
 export default function Dashboard() {
-  const store = useStore();
+  const router = useRouter();
   const {
     tasks,
     courses,
@@ -49,13 +58,11 @@ export default function Dashboard() {
     restoreTask,
     scheduleStudySession,
     resetDemo,
-  } = store;
+    startFresh,
+  } = useStore();
 
   const termId = settings.currentTermId;
-  const termTasks = useMemo(
-    () => tasksInTerm(tasks, termId),
-    [tasks, termId],
-  );
+  const termTasks = useMemo(() => tasksInTerm(tasks, termId), [tasks, termId]);
   const termCourses = useMemo(
     () => coursesInTerm(courses, termId),
     [courses, termId],
@@ -69,6 +76,7 @@ export default function Dashboard() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
   const [formKey, setFormKey] = useState(0);
+  const [quickTitle, setQuickTitle] = useState("");
 
   const [scheduleFor, setScheduleFor] = useState<Task | null>(null);
   const [scheduleKey, setScheduleKey] = useState(0);
@@ -76,6 +84,24 @@ export default function Dashboard() {
   const [undo, setUndo] = useState<Task | null>(null);
   const [message, setMessage] = useState("");
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (undoTimer.current) clearTimeout(undoTimer.current);
+    },
+    [],
+  );
+
+  const [welcomeDismissed, setWelcomeDismissed] = useState(() => {
+    try {
+      return (
+        typeof window !== "undefined" &&
+        window.localStorage.getItem(ONBOARDED_KEY) === "true"
+      );
+    } catch {
+      return false;
+    }
+  });
 
   const [filters, setFilters] = useState<TaskFilters>({
     search: "",
@@ -92,6 +118,15 @@ export default function Dashboard() {
   const todayItems = useMemo(
     () => itemsForDay(new Date(), termTasks, termCourses),
     [termTasks, termCourses],
+  );
+  const recommended = useMemo(() => recommendTasks(termTasks), [termTasks]);
+  const exams = useMemo(() => upcomingExams(termTasks), [termTasks]);
+  const todayEstimate = useMemo(
+    () =>
+      totalEstimateMinutes(
+        termTasks.filter((t) => !t.completed && dueBucket(t) === "today"),
+      ),
+    [termTasks],
   );
 
   const activeByBucket = useMemo(() => {
@@ -119,6 +154,18 @@ export default function Dashboard() {
     0,
   );
 
+  const showWelcome =
+    ready && !welcomeDismissed && tasks.some((t) => t.id.startsWith("seed-"));
+
+  function dismissWelcome() {
+    setWelcomeDismissed(true);
+    try {
+      window.localStorage.setItem(ONBOARDED_KEY, "true");
+    } catch {
+      /* ignore */
+    }
+  }
+
   function openNew() {
     setEditing(null);
     setFormKey((k) => k + 1);
@@ -132,6 +179,21 @@ export default function Dashboard() {
   function openSchedule(task: Task) {
     setScheduleFor(task);
     setScheduleKey((k) => k + 1);
+  }
+
+  function handleQuickAdd(e: React.FormEvent) {
+    e.preventDefault();
+    const title = quickTitle.trim();
+    if (!title) return;
+    addTask({ title, type: "assignment", priority: "medium" });
+    setQuickTitle("");
+    announce("Task added.");
+  }
+
+  function startTimerOn(task: Task) {
+    timer.selectTask(task.id);
+    timer.start();
+    router.push("/timer");
   }
 
   function handleSubmit(draft: Parameters<typeof addTask>[0]) {
@@ -190,6 +252,38 @@ export default function Dashboard() {
         {message}
       </div>
 
+      {showWelcome && (
+        <section className="welcome-banner card" aria-label="Welcome">
+          <div>
+            <h2 className="welcome-title">Welcome to Semestra 👋</h2>
+            <p className="muted-note">
+              You&apos;re looking at example data so you can explore. When
+              you&apos;re ready, start fresh and add your own courses and tasks.
+            </p>
+          </div>
+          <div className="welcome-actions">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                startFresh();
+                dismissWelcome();
+                announce("Cleared example data. Add your own to begin.");
+              }}
+            >
+              Start fresh
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={dismissWelcome}
+            >
+              Keep exploring
+            </button>
+          </div>
+        </section>
+      )}
+
       <section aria-label="Summary" className="summary-grid">
         <SummaryCard label="Overdue" value={summary.overdue} tone="danger" />
         <SummaryCard label="Due today" value={summary.today} tone="warning" />
@@ -201,8 +295,83 @@ export default function Dashboard() {
         />
       </section>
 
+      {recommended.length > 0 && (
+        <section aria-label="Focus now" className="focus-card card">
+          <h2 className="group-title">Focus now</h2>
+          <ul className="focus-list">
+            {recommended.map((task) => {
+              const course = task.courseId ? cmap.get(task.courseId) : undefined;
+              return (
+                <li key={task.id} className="focus-item">
+                  <div className="focus-main">
+                    <span className="focus-title">{task.title}</span>
+                    <span className="focus-meta">
+                      {course ? `${course.code || course.name} · ` : ""}
+                      {task.dueAt ? relativeDays(task.dueAt) : "no due date"}
+                    </span>
+                  </div>
+                  <div className="focus-actions">
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => startTimerOn(task)}
+                    >
+                      Start timer
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      onClick={() => {
+                        toggleComplete(task.id);
+                        announce(`Completed "${task.title}".`);
+                      }}
+                      aria-label={`Mark "${task.title}" done`}
+                    >
+                      Done
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {exams.length > 0 && (
+        <section aria-label="Exams" className="exam-strip card">
+          <h2 className="group-title">Exams ahead</h2>
+          <ul className="exam-list">
+            {exams.map((task) => {
+              const course = task.courseId ? cmap.get(task.courseId) : undefined;
+              const d = daysUntil(task.dueAt as string);
+              return (
+                <li key={task.id} className="exam-item" data-soon={d <= 3}>
+                  <span
+                    className="exam-course"
+                    style={{ color: course?.color }}
+                  >
+                    {course?.code || "Exam"}
+                  </span>
+                  <span className="exam-title">{task.title}</span>
+                  <span className="exam-when">
+                    {relativeDays(task.dueAt as string)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
       <section aria-label="Today" className="today-card card">
-        <h2 className="group-title">Today&apos;s schedule</h2>
+        <div className="today-head">
+          <h2 className="group-title">Today&apos;s schedule</h2>
+          {todayEstimate > 0 && (
+            <span className="today-workload">
+              ~{formatDuration(todayEstimate)} of work due
+            </span>
+          )}
+        </div>
         {todayItems.length === 0 ? (
           <p className="muted-note">Nothing scheduled today.</p>
         ) : (
@@ -224,6 +393,29 @@ export default function Dashboard() {
           </ul>
         )}
       </section>
+
+      <form className="quick-add card" onSubmit={handleQuickAdd}>
+        <label htmlFor="quick-add" className="sr-only">
+          Quick add a task
+        </label>
+        <input
+          id="quick-add"
+          className="field-input quick-add-input"
+          value={quickTitle}
+          onChange={(e) => setQuickTitle(e.target.value)}
+          placeholder="Add a task and press Enter…"
+        />
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={!quickTitle.trim()}
+        >
+          Add
+        </button>
+        <button type="button" className="btn btn-ghost" onClick={openNew}>
+          More options
+        </button>
+      </form>
 
       <section aria-label="Filters" className="filters card">
         <div className="filter-field filter-search">

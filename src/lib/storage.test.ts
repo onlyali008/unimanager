@@ -41,6 +41,36 @@ describe("migrateState v1 -> v2", () => {
     expect(state.tasks.every((t) => t.termId === state.terms[0].id)).toBe(true);
   });
 
+  it("links each task to the right course even when earlier records are dropped", () => {
+    // A bad record precedes two valid, differently-labeled tasks. If linking
+    // used post-filter indices it would misassign the courses.
+    const state = migrateState({
+      version: 1,
+      tasks: [
+        { id: "", title: "dropped" },
+        {
+          id: "a",
+          title: "Algo pset",
+          type: "assignment",
+          priority: "high",
+          course: "CS 240",
+        },
+        {
+          id: "b",
+          title: "History reading",
+          type: "reading",
+          priority: "low",
+          course: "HIST 118",
+        },
+      ],
+    });
+    const idByCode = new Map(state.courses.map((c) => [c.code, c.id]));
+    const a = state.tasks.find((t) => t.id === "a");
+    const b = state.tasks.find((t) => t.id === "b");
+    expect(a?.courseId).toBe(idByCode.get("CS 240"));
+    expect(b?.courseId).toBe(idByCode.get("HIST 118"));
+  });
+
   it("drops invalid task records but keeps valid ones", () => {
     const state = migrateState({
       version: 1,

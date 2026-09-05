@@ -35,6 +35,9 @@ export function ArtifactViewer({
     artifact.kind === "audio" ? "preview" : "edit",
   );
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioStatus, setAudioStatus] = useState<
+    "loading" | "ready" | "missing"
+  >("loading");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Keep the latest content so dictation appends to fresh text.
@@ -58,12 +61,18 @@ export function ArtifactViewer({
     if (artifact.kind === "audio" && artifact.audioId) {
       getAudio(artifact.audioId)
         .then((blob) => {
-          if (blob && !cancelled) {
+          if (cancelled) return;
+          if (blob) {
             url = URL.createObjectURL(blob);
             setAudioUrl(url);
+            setAudioStatus("ready");
+          } else {
+            setAudioStatus("missing");
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          if (!cancelled) setAudioStatus("missing");
+        });
     }
     return () => {
       cancelled = true;
@@ -172,8 +181,13 @@ export function ArtifactViewer({
 
       {artifact.kind === "audio" && (
         <div className="artifact-audio">
-          {audioUrl ? (
+          {audioStatus === "ready" && audioUrl ? (
             <audio controls src={audioUrl} className="audio-player" />
+          ) : audioStatus === "missing" ? (
+            <p className="field-error" role="alert">
+              Recording unavailable — the audio for this artifact isn&apos;t on
+              this device.
+            </p>
           ) : (
             <p className="muted-note">Loading recording…</p>
           )}

@@ -1570,3 +1570,136 @@ body {
   font-weight: 800;
   font-size: 1.05rem;
 }
+
+/* --- Dashboard: welcome, focus, exams, quick-add ------------------- */
+.welcome-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.2rem;
+  border-inline-start: 4px solid var(--accent);
+  background: var(--accent-soft);
+}
+.welcome-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin-bottom: 0.15rem;
+}
+.welcome-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.focus-card {
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  border-top: 3px solid var(--accent);
+}
+.focus-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.focus-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  background: var(--surface-2);
+}
+.focus-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.focus-title {
+  font-weight: 600;
+}
+.focus-meta {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.focus-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.exam-strip {
+  padding: 0.9rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.exam-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.exam-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+.exam-item[data-soon="true"] {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+.exam-course {
+  font-weight: 700;
+}
+.exam-when {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.today-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.today-workload {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.quick-add {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  align-items: center;
+}
+.quick-add-input {
+  flex: 1;
+}
+@media (max-width: 560px) {
+  .quick-add {
+    flex-wrap: wrap;
+  }
+  .quick-add-input {
+    flex: 1 1 100%;
+  }
+}

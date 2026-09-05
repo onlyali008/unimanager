@@ -30,6 +30,7 @@ export default function AssistantPage() {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [srAnnounce, setSrAnnounce] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -72,6 +73,7 @@ export default function AssistantPage() {
     const controller = new AbortController();
     abortRef.current = controller;
 
+    let full = "";
     try {
       await streamOllamaChat({
         baseUrl: settings.ollamaUrl,
@@ -79,6 +81,7 @@ export default function AssistantPage() {
         messages: chatMessages,
         signal: controller.signal,
         onToken: (tok) => {
+          full += tok;
           setMessages((m) =>
             m.map((msg) =>
               msg.id === assistantId
@@ -88,9 +91,17 @@ export default function AssistantPage() {
           );
         },
       });
+      // Announce the finished reply once (not token-by-token).
+      if (full.trim()) setSrAnnounce(full);
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Something went wrong.";
-      setError(message);
+      const aborted =
+        controller.signal.aborted ||
+        (e instanceof DOMException && e.name === "AbortError");
+      if (!aborted) {
+        const message =
+          e instanceof Error ? e.message : "Something went wrong.";
+        setError(message);
+      }
       // Drop the empty assistant bubble if nothing streamed.
       setMessages((m) =>
         m.filter((msg) => !(msg.id === assistantId && msg.content === "")),
@@ -122,7 +133,10 @@ export default function AssistantPage() {
         <p className="muted-note">Loading…</p>
       ) : (
         <div className="chat">
-          <div className="chat-log" aria-live="polite">
+          <div className="sr-only" aria-live="polite">
+            {srAnnounce}
+          </div>
+          <div className="chat-log" aria-live="off">
             {messages.length === 0 ? (
               <div className="chat-empty">
                 <p className="muted-note">

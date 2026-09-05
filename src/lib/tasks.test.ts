@@ -4,8 +4,11 @@ import {
   dueBucket,
   filterTasks,
   itemsForDay,
+  recommendTasks,
   sortTasks,
   summarize,
+  totalEstimateMinutes,
+  upcomingExams,
 } from "./tasks";
 
 function task(partial: Partial<Task>): Task {
@@ -125,6 +128,43 @@ describe("summarize", () => {
       upcoming: 1,
       completed: 1,
     });
+  });
+});
+
+describe("recommendTasks", () => {
+  it("ranks overdue and due-today work above distant, low-priority tasks", () => {
+    const tasks = [
+      task({ id: "far", title: "Far", dueAt: "2026-10-01T09:00:00", priority: "low" }),
+      task({ id: "over", title: "Overdue", dueAt: "2026-09-01T09:00:00" }),
+      task({ id: "today", title: "Today", dueAt: "2026-09-03T20:00:00" }),
+      task({ id: "done", title: "Done", completed: true, dueAt: "2026-09-01T09:00:00" }),
+    ];
+    const rec = recommendTasks(tasks, NOW, 2).map((t) => t.id);
+    expect(rec).toEqual(["over", "today"]);
+    expect(rec).not.toContain("done");
+  });
+});
+
+describe("upcomingExams", () => {
+  it("returns only non-overdue exams with a due date, soonest first", () => {
+    const tasks = [
+      task({ id: "e1", type: "exam", dueAt: "2026-09-20T09:00:00" }),
+      task({ id: "e2", type: "exam", dueAt: "2026-09-10T09:00:00" }),
+      task({ id: "past", type: "exam", dueAt: "2026-09-01T09:00:00" }),
+      task({ id: "hw", type: "assignment", dueAt: "2026-09-05T09:00:00" }),
+    ];
+    expect(upcomingExams(tasks, NOW).map((t) => t.id)).toEqual(["e2", "e1"]);
+  });
+});
+
+describe("totalEstimateMinutes", () => {
+  it("sums estimates of incomplete tasks only", () => {
+    const tasks = [
+      task({ id: "1", estimatedMinutes: 60 }),
+      task({ id: "2", estimatedMinutes: 30, completed: true }),
+      task({ id: "3", estimatedMinutes: 45 }),
+    ];
+    expect(totalEstimateMinutes(tasks)).toBe(105);
   });
 });
 
