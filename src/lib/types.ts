@@ -63,9 +63,81 @@ export interface Course {
   targetGrade?: string;
   /** Free-form course notes (markdown-ish plain text). */
   notes?: string;
+  /** Credit hours, used to weight the term GPA. Defaults to 1 when unset. */
+  credits?: number;
+  /** Weighted assessment categories for grade tracking. */
+  categories?: GradeCategory[];
+  /** Percentage→letter bands from the syllabus. Falls back to a default. */
+  gradeScale?: GradeBand[];
+  /** Uploaded syllabus file (bytes live in the file blob store). */
+  syllabus?: SyllabusMeta;
   archived: boolean;
   createdAt: string;
 }
+
+export interface GradeItem {
+  id: string;
+  name: string;
+  /** Points earned, or null if not graded yet. */
+  score: number | null;
+  outOf: number;
+}
+
+export interface GradeCategory {
+  id: string;
+  name: string;
+  /** Percentage of the final grade this category is worth (e.g. 30). */
+  weight: number;
+  items: GradeItem[];
+}
+
+/** A percentage cutoff for a letter grade, e.g. { letter: "A", min: 85 }. */
+export interface GradeBand {
+  letter: string;
+  min: number;
+}
+
+export interface SyllabusMeta {
+  fileId: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  uploadedAt: string;
+}
+
+/** North American 4.0 GPA points by letter grade. */
+export const GPA_POINTS: Record<string, number> = {
+  "A+": 4.0,
+  A: 4.0,
+  "A-": 3.7,
+  "B+": 3.3,
+  B: 3.0,
+  "B-": 2.7,
+  "C+": 2.3,
+  C: 2.0,
+  "C-": 1.7,
+  "D+": 1.3,
+  D: 1.0,
+  "D-": 0.7,
+  F: 0.0,
+};
+
+/** Default percentage→letter scale (used when a course sets none). */
+export const DEFAULT_GRADE_SCALE: GradeBand[] = [
+  { letter: "A+", min: 90 },
+  { letter: "A", min: 85 },
+  { letter: "A-", min: 80 },
+  { letter: "B+", min: 77 },
+  { letter: "B", min: 73 },
+  { letter: "B-", min: 70 },
+  { letter: "C+", min: 67 },
+  { letter: "C", min: 63 },
+  { letter: "C-", min: 60 },
+  { letter: "D+", min: 57 },
+  { letter: "D", min: 53 },
+  { letter: "D-", min: 50 },
+  { letter: "F", min: 0 },
+];
 
 export interface Task {
   id: string;

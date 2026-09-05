@@ -15,6 +15,7 @@ import { newId } from "@/lib/tasks";
 import { putAudio } from "@/lib/audioStore";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { ArtifactViewer } from "@/components/ArtifactViewer";
+import { CourseGrades } from "@/components/CourseGrades";
 
 export default function CourseDetailPage() {
   const params = useParams<{ id: string }>();
@@ -187,6 +188,12 @@ export default function CourseDetailPage() {
           rows={4}
         />
       </section>
+
+      <CourseGrades
+        course={course}
+        onPatch={(patch) => patchCourse(course.id, patch)}
+        onMessage={announce}
+      />
 
       <section aria-label="Artifacts">
         <div className="artifacts-head">

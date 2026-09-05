@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useStore } from "@/hooks/useStore";
 import { coursesInTerm, tasksInTerm } from "@/lib/tasks";
+import { computeCourseGrade, computeTermGpa } from "@/lib/grades";
 
 function pct(done: number, total: number): number {
   return total === 0 ? 0 : Math.round((done / total) * 100);
@@ -24,6 +25,8 @@ export default function ProgressPage() {
     return { total, done, percent: pct(done, total) };
   }, [termTasks]);
 
+  const termGpa = useMemo(() => computeTermGpa(termCourses), [termCourses]);
+
   const perCourse = useMemo(() => {
     return termCourses.map((course) => {
       const items = termTasks.filter((t) => t.courseId === course.id);
@@ -33,6 +36,7 @@ export default function ProgressPage() {
         total: items.length,
         done,
         percent: pct(done, items.length),
+        grade: computeCourseGrade(course),
       };
     });
   }, [termCourses, termTasks]);
@@ -57,10 +61,26 @@ export default function ProgressPage() {
 
       {!ready ? (
         <p className="muted-note">Loading…</p>
-      ) : termTasks.length === 0 ? (
-        <p className="muted-note">No tasks in this term yet.</p>
+      ) : termCourses.length === 0 && termTasks.length === 0 ? (
+        <p className="muted-note">No courses or tasks in this term yet.</p>
       ) : (
         <>
+          {termGpa.gpa !== null && (
+            <section className="card gpa-card" aria-label="Term GPA">
+              <div className="progress-head">
+                <h2 className="group-title">Term GPA (4.0 scale)</h2>
+                <span className="gpa-figure">{termGpa.gpa.toFixed(2)}</span>
+              </div>
+              <p className="muted-note">
+                Across {termGpa.gradedCourses}{" "}
+                {termGpa.gradedCourses === 1 ? "course" : "courses"} with grades
+                ({termGpa.gradedCredits} credits). Enter category grades on a
+                course to include it.
+              </p>
+            </section>
+          )}
+
+          {termTasks.length > 0 && (
           <section className="card progress-overall">
             <div className="progress-head">
               <h2 className="group-title">Term completion</h2>
@@ -75,9 +95,10 @@ export default function ProgressPage() {
               {overall.done} of {overall.total} tasks completed.
             </p>
           </section>
+          )}
 
           <section aria-label="By course" className="progress-list">
-            {perCourse.map(({ course, total, done, percent }) => (
+            {perCourse.map(({ course, total, done, percent, grade }) => (
               <div key={course.id} className="card progress-row">
                 <div className="progress-head">
                   <div>
@@ -97,8 +118,16 @@ export default function ProgressPage() {
                   <span className="muted-note">
                     {done} of {total} tasks completed
                   </span>
+                  {grade.hasGrades && (
+                    <span className="chip grade-chip">
+                      {grade.letter} · {grade.earnedPercent?.toFixed(1)}%
+                      {grade.gpaPoints !== null
+                        ? ` · GPA ${grade.gpaPoints.toFixed(1)}`
+                        : ""}
+                    </span>
+                  )}
                   {course.targetGrade && (
-                    <span className="chip">Target {course.targetGrade}</span>
+                    <span className="chip">Target {course.targetGrade}%</span>
                   )}
                 </div>
               </div>

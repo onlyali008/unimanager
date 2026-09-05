@@ -2,9 +2,13 @@ import type {
   Artifact,
   ArtifactKind,
   Course,
+  GradeBand,
+  GradeCategory,
+  GradeItem,
   Priority,
   Settings,
   StoreState,
+  SyllabusMeta,
   Task,
   Term,
   TaskType,
@@ -75,7 +79,81 @@ function coerceCourse(value: unknown, fallbackTermId: string): Course | null {
   if (mEnd) course.meetingEnd = mEnd;
   if (target) course.targetGrade = target;
   if (typeof v.notes === "string") course.notes = v.notes;
+  if (typeof v.credits === "number" && v.credits >= 0) {
+    course.credits = v.credits;
+  }
+  const categories = coerceCategories(v.categories);
+  if (categories) course.categories = categories;
+  const scale = coerceGradeScale(v.gradeScale);
+  if (scale) course.gradeScale = scale;
+  const syllabus = coerceSyllabus(v.syllabus);
+  if (syllabus) course.syllabus = syllabus;
   return course;
+}
+
+function num(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
+function coerceCategories(value: unknown): GradeCategory[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const cats: GradeCategory[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") continue;
+    const r = raw as Record<string, unknown>;
+    if (!str(r.id) || !str(r.name)) continue;
+    const items: GradeItem[] = Array.isArray(r.items)
+      ? r.items
+          .map((it): GradeItem | null => {
+            if (!it || typeof it !== "object") return null;
+            const i = it as Record<string, unknown>;
+            if (!str(i.id) || !str(i.name)) return null;
+            const outOf = num(i.outOf);
+            return {
+              id: i.id as string,
+              name: i.name as string,
+              score: num(i.score),
+              outOf: outOf !== null && outOf > 0 ? outOf : 100,
+            };
+          })
+          .filter((i): i is GradeItem => i !== null)
+      : [];
+    cats.push({
+      id: r.id as string,
+      name: r.name as string,
+      weight: Math.max(0, num(r.weight) ?? 0),
+      items,
+    });
+  }
+  return cats;
+}
+
+function coerceGradeScale(value: unknown): GradeBand[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const bands: GradeBand[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") continue;
+    const r = raw as Record<string, unknown>;
+    const letter = str(r.letter);
+    const min = num(r.min);
+    if (letter && min !== null) bands.push({ letter, min });
+  }
+  return bands.length > 0 ? bands : undefined;
+}
+
+function coerceSyllabus(value: unknown): SyllabusMeta | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const v = value as Record<string, unknown>;
+  const fileId = str(v.fileId);
+  const name = str(v.name);
+  if (!fileId || !name) return undefined;
+  return {
+    fileId,
+    name,
+    mimeType: str(v.mimeType) ?? "application/octet-stream",
+    size: num(v.size) ?? 0,
+    uploadedAt: isoOrUndef(v.uploadedAt) ?? new Date().toISOString(),
+  };
 }
 
 function coerceTask(value: unknown, fallbackTermId: string): Task | null {

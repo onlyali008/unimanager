@@ -13,6 +13,7 @@ import type {
 import { COURSE_PALETTE } from "@/lib/types";
 import * as store from "@/lib/store";
 import { deleteAudio } from "@/lib/audioStore";
+import { deleteFile } from "@/lib/fileStore";
 import { newId } from "@/lib/tasks";
 import type { DetectedCourse, DetectedTaskEvent } from "@/lib/ics";
 
@@ -268,6 +269,10 @@ export function useStore(): UseStore {
 
   const deleteCourse = useCallback((id: string) => {
     const s = snap();
+    const removed = s.courses.find((c) => c.id === id);
+    if (removed?.syllabus) {
+      void deleteFile(removed.syllabus.fileId).catch(() => {});
+    }
     store.replaceStore({
       ...s,
       courses: s.courses.filter((c) => c.id !== id),
