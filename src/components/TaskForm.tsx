@@ -14,6 +14,8 @@ interface TaskFormProps {
   open: boolean;
   /** When present, the form edits this task; otherwise it creates a new one. */
   editing?: Task | null;
+  /** Prefill the due date for a NEW task (ignored when editing). */
+  defaultDueAt?: string;
   courses: Course[];
   onSubmit: (draft: TaskDraft) => void;
   onClose: () => void;
@@ -40,6 +42,7 @@ function fromLocalInput(value: string): string | undefined {
 export function TaskForm({
   open,
   editing,
+  defaultDueAt,
   courses,
   onSubmit,
   onClose,
@@ -54,7 +57,9 @@ export function TaskForm({
   const [title, setTitle] = useState(() => editing?.title ?? "");
   const [type, setType] = useState<TaskType>(() => editing?.type ?? "assignment");
   const [courseId, setCourseId] = useState(() => editing?.courseId ?? "");
-  const [dueAt, setDueAt] = useState(() => toLocalInput(editing?.dueAt));
+  const [dueAt, setDueAt] = useState(() =>
+    toLocalInput(editing?.dueAt ?? defaultDueAt),
+  );
   const [priority, setPriority] = useState<Priority>(
     () => editing?.priority ?? "medium",
   );

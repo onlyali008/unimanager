@@ -5,15 +5,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useStore } from "@/hooks/useStore";
 import { TimerWidget } from "@/components/TimerWidget";
+import { GlobalShortcuts } from "@/components/GlobalShortcuts";
 
 const NAV = [
-  { href: "/", label: "Dashboard" },
-  { href: "/courses", label: "Courses" },
-  { href: "/calendar", label: "Calendar" },
-  { href: "/timer", label: "Timer" },
-  { href: "/progress", label: "Progress" },
-  { href: "/assistant", label: "Assistant" },
-  { href: "/settings", label: "Settings" },
+  { href: "/", label: "Dashboard", short: "Home" },
+  { href: "/courses", label: "Courses", short: "Courses" },
+  { href: "/calendar", label: "Calendar", short: "Calendar" },
+  { href: "/timer", label: "Timer", short: "Timer" },
+  { href: "/progress", label: "Progress", short: "Grades" },
+  { href: "/assistant", label: "Assistant", short: "Chat" },
+  { href: "/settings", label: "Settings", short: "Settings" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -80,7 +81,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
+      <nav className="bottom-nav" aria-label="Primary">
+        {NAV.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="bottom-link"
+            aria-current={isActive(item.href) ? "page" : undefined}
+          >
+            {item.short}
+          </Link>
+        ))}
+      </nav>
+
       <TimerWidget />
+      <GlobalShortcuts />
     </div>
   );
 }

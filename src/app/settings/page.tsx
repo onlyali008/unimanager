@@ -5,6 +5,7 @@ import type { Density, ThemePref } from "@/lib/types";
 import { useStore } from "@/hooks/useStore";
 import * as storeApi from "@/lib/store";
 import { buildBackup, restoreBackup } from "@/lib/backup";
+import { importJSON } from "@/lib/storage";
 import { listOllamaModels } from "@/lib/assistant";
 
 export default function SettingsPage() {
@@ -31,6 +32,14 @@ export default function SettingsPage() {
   }
 
   const [busy, setBusy] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"reset" | "clear" | null>(
+    null,
+  );
+  const [pendingImport, setPendingImport] = useState<{
+    text: string;
+    tasks: number;
+    courses: number;
+  } | null>(null);
 
   async function handleExport() {
     setBusy(true);
@@ -63,10 +72,24 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    setBusy(true);
     try {
       const text = await file.text();
-      const { state, stats } = await restoreBackup(text);
+      const preview = importJSON(text); // validates without touching storage
+      setPendingImport({
+        text,
+        tasks: preview.tasks.length,
+        courses: preview.courses.length,
+      });
+    } catch {
+      announce("That file could not be imported. Expected Semestra JSON.");
+    }
+  }
+
+  async function confirmImport() {
+    if (!pendingImport) return;
+    setBusy(true);
+    try {
+      const { state, stats } = await restoreBackup(pendingImport.text);
       replaceAll(state);
       announce(
         `Imported ${state.tasks.length} tasks, ${state.courses.length} courses` +
@@ -77,9 +100,10 @@ export default function SettingsPage() {
             : "."),
       );
     } catch {
-      announce("That file could not be imported. Expected Semestra JSON.");
+      announce("Import failed.");
     } finally {
       setBusy(false);
+      setPendingImport(null);
     }
   }
 
@@ -310,27 +334,95 @@ export default function SettingsPage() {
                 onChange={handleImport}
                 aria-label="Import Semestra JSON file"
               />
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => {
-                  resetDemo();
-                  announce("Demo data restored.");
-                }}
-              >
-                Restore demo data
-              </button>
-              <button
-                type="button"
-                className="btn btn-danger"
-                onClick={() => {
-                  clear();
-                  announce("All tasks cleared.");
-                }}
-              >
-                Clear all tasks
-              </button>
+              {confirmAction === "reset" ? (
+                <span className="confirm-inline">
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={() => {
+                      resetDemo();
+                      setConfirmAction(null);
+                      announce("Demo data restored.");
+                    }}
+                  >
+                    Confirm restore
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => setConfirmAction(null)}
+                  >
+                    Cancel
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setConfirmAction("reset")}
+                >
+                  Restore demo data
+                </button>
+              )}
+              {confirmAction === "clear" ? (
+                <span className="confirm-inline">
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={() => {
+                      clear();
+                      setConfirmAction(null);
+                      announce("All tasks cleared.");
+                    }}
+                  >
+                    Confirm clear
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => setConfirmAction(null)}
+                  >
+                    Cancel
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={() => setConfirmAction("clear")}
+                >
+                  Clear all tasks
+                </button>
+              )}
             </div>
+
+            {pendingImport && (
+              <div className="import-confirm" role="alert">
+                <p>
+                  Replace <strong>all current data</strong> with{" "}
+                  {pendingImport.tasks} tasks and {pendingImport.courses}{" "}
+                  courses from this file? This cannot be undone.
+                </p>
+                <div className="data-buttons">
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={confirmImport}
+                    disabled={busy}
+                  >
+                    {busy ? "Importing…" : "Replace my data"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => setPendingImport(null)}
+                    disabled={busy}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </section>
         </>
       )}

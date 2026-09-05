@@ -92,6 +92,35 @@ export default function Dashboard() {
     [],
   );
 
+  // Dashboard keyboard shortcuts: "n" new task, "/" focus search.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target;
+      if (
+        t instanceof HTMLElement &&
+        (t.tagName === "INPUT" ||
+          t.tagName === "TEXTAREA" ||
+          t.tagName === "SELECT" ||
+          t.isContentEditable)
+      ) {
+        return;
+      }
+      if (document.querySelector("dialog[open]")) return;
+      if (e.key === "n" || e.key === "N") {
+        e.preventDefault();
+        setEditing(null);
+        setFormKey((k) => k + 1);
+        setFormOpen(true);
+      } else if (e.key === "/") {
+        e.preventDefault();
+        document.getElementById("search")?.focus();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const [welcomeDismissed, setWelcomeDismissed] = useState(() => {
     try {
       return (

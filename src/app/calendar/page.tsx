@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { Task } from "@/lib/types";
 import { useStore } from "@/hooks/useStore";
 import {
   addDays,
@@ -10,21 +11,46 @@ import {
   startOfWeek,
   tasksInTerm,
   WEEKDAY_LABELS,
+  type CalendarItem,
 } from "@/lib/tasks";
+import { TaskForm } from "@/components/TaskForm";
 
 type View = "week" | "agenda";
 
+function dueAtFor(day: Date): string {
+  const d = new Date(day);
+  d.setHours(17, 0, 0, 0);
+  return d.toISOString();
+}
+
 export default function CalendarPage() {
-  const { tasks, courses, settings, ready } = useStore();
+  const {
+    tasks,
+    courses,
+    settings,
+    ready,
+    addTask,
+    updateTask,
+    toggleComplete,
+  } = useStore();
   const termId = settings.currentTermId;
 
   const [view, setView] = useState<View>("week");
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
 
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [defaultDue, setDefaultDue] = useState<string | undefined>(undefined);
+  const [formKey, setFormKey] = useState(0);
+
   const termTasks = useMemo(() => tasksInTerm(tasks, termId), [tasks, termId]);
   const termCourses = useMemo(
     () => coursesInTerm(courses, termId),
     [courses, termId],
+  );
+  const activeCourses = useMemo(
+    () => termCourses.filter((c) => !c.archived),
+    [termCourses],
   );
 
   const today = new Date();
@@ -50,6 +76,68 @@ export default function CalendarPage() {
     day: "numeric",
   })}`;
 
+  function editTask(task: Task) {
+    setEditingTask(task);
+    setDefaultDue(undefined);
+    setFormKey((k) => k + 1);
+    setFormOpen(true);
+  }
+  function addOnDay(day: Date) {
+    setEditingTask(null);
+    setDefaultDue(dueAtFor(day));
+    setFormKey((k) => k + 1);
+    setFormOpen(true);
+  }
+
+  function renderItem(item: CalendarItem, wide: boolean) {
+    if (item.kind === "task" && item.task) {
+      const task = item.task;
+      return (
+        <li
+          key={item.id}
+          className={wide ? "cal-item wide interactive" : "cal-item interactive"}
+          style={{ borderInlineStartColor: item.color }}
+          data-kind="task"
+        >
+          <input
+            type="checkbox"
+            className="cal-check"
+            checked={task.completed}
+            onChange={() => toggleComplete(task.id)}
+            aria-label={
+              task.completed
+                ? `Mark "${task.title}" not done`
+                : `Mark "${task.title}" done`
+            }
+          />
+          <button
+            type="button"
+            className="cal-open"
+            onClick={() => editTask(task)}
+          >
+            <span className="cal-time">{item.timeLabel}</span>
+            <span className={task.completed ? "cal-title done" : "cal-title"}>
+              {item.title}
+            </span>
+          </button>
+          {wide && <span className="chip">Due</span>}
+        </li>
+      );
+    }
+    return (
+      <li
+        key={item.id}
+        className={wide ? "cal-item wide" : "cal-item"}
+        style={{ borderInlineStartColor: item.color }}
+        data-kind={item.kind}
+      >
+        <span className="cal-time">{item.timeLabel}</span>
+        <span className="cal-title">{item.title}</span>
+        {wide && <span className="chip">Class</span>}
+      </li>
+    );
+  }
+
   return (
     <div className="page">
       <header className="page-header">
@@ -57,7 +145,8 @@ export default function CalendarPage() {
           <p className="eyebrow">Calendar</p>
           <h1 className="page-title">Plan your week</h1>
           <p className="page-subtitle">
-            Class meetings, deadlines, and study sessions together.
+            Class meetings, deadlines, and study sessions together. Click a task
+            to edit it, or a day to add one.
           </p>
         </div>
         <div className="view-toggle" role="group" aria-label="Calendar view">
@@ -128,6 +217,17 @@ export default function CalendarPage() {
                       {WEEKDAY_LABELS[day.getDay()]}
                     </span>
                     <span className="day-num">{day.getDate()}</span>
+                    <button
+                      type="button"
+                      className="day-add"
+                      onClick={() => addOnDay(day)}
+                      aria-label={`Add a task due ${day.toLocaleDateString(
+                        undefined,
+                        { month: "long", day: "numeric" },
+                      )}`}
+                    >
+                      +
+                    </button>
                   </div>
                   <ul className="day-items">
                     {items.length === 0 ? (
@@ -135,17 +235,7 @@ export default function CalendarPage() {
                         —
                       </li>
                     ) : (
-                      items.map((item) => (
-                        <li
-                          key={item.id}
-                          className="cal-item"
-                          style={{ borderInlineStartColor: item.color }}
-                          data-kind={item.kind}
-                        >
-                          <span className="cal-time">{item.timeLabel}</span>
-                          <span className="cal-title">{item.title}</span>
-                        </li>
-                      ))
+                      items.map((item) => renderItem(item, false))
                     )}
                   </ul>
                 </section>
@@ -172,26 +262,31 @@ export default function CalendarPage() {
                       })}
                 </h2>
                 <ul className="task-list">
-                  {items.map((item) => (
-                    <li
-                      key={item.id}
-                      className="cal-item wide"
-                      style={{ borderInlineStartColor: item.color }}
-                      data-kind={item.kind}
-                    >
-                      <span className="cal-time">{item.timeLabel}</span>
-                      <span className="cal-title">{item.title}</span>
-                      <span className="chip">
-                        {item.kind === "meeting" ? "Class" : "Due"}
-                      </span>
-                    </li>
-                  ))}
+                  {items.map((item) => renderItem(item, true))}
                 </ul>
               </section>
             ))
           )}
         </div>
       )}
+
+      <TaskForm
+        key={`cal-form-${formKey}`}
+        open={formOpen}
+        editing={editingTask}
+        defaultDueAt={defaultDue}
+        courses={activeCourses}
+        onSubmit={(draft) => {
+          if (editingTask) updateTask(editingTask.id, draft);
+          else addTask(draft);
+          setFormOpen(false);
+          setEditingTask(null);
+        }}
+        onClose={() => {
+          setFormOpen(false);
+          setEditingTask(null);
+        }}
+      />
     </div>
   );
 }
