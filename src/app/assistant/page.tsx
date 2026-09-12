@@ -7,9 +7,16 @@ import { coursesInTerm, newId, tasksInTerm } from "@/lib/tasks";
 import {
   ASSISTANT_SYSTEM_PROMPT,
   buildScheduleContext,
+  listOllamaModels,
+  localAnswer,
   streamOllamaChat,
   type ChatMessage,
 } from "@/lib/assistant";
+
+const FALLBACK_GUIDANCE =
+  'I can answer questions about your schedule — try "what\'s due this week", ' +
+  '"anything overdue", "when\'s my next exam", or "what should I work on". ' +
+  "For open-ended chat, connect a local Ollama model in Settings.";
 
 interface UiMessage {
   id: string;
@@ -31,6 +38,9 @@ export default function AssistantPage() {
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [srAnnounce, setSrAnnounce] = useState("");
+  const [avail, setAvail] = useState<"unknown" | "online" | "offline">(
+    "unknown",
+  );
   const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -38,10 +48,43 @@ export default function AssistantPage() {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
+  // Probe the local model without blocking use; sets online/offline async.
+  useEffect(() => {
+    let cancelled = false;
+    listOllamaModels(settings.ollamaUrl)
+      .then(() => {
+        if (!cancelled) setAvail("online");
+      })
+      .catch(() => {
+        if (!cancelled) setAvail("offline");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [settings.ollamaUrl, settings.ollamaModel]);
+
   async function send(text: string) {
     const trimmed = text.trim();
     if (!trimmed || streaming) return;
     setError(null);
+
+    // No local model connected: answer from the schedule deterministically.
+    if (avail !== "online") {
+      const ans =
+        localAnswer(
+          trimmed,
+          tasksInTerm(tasks, settings.currentTermId),
+          coursesInTerm(courses, settings.currentTermId),
+        ) ?? FALLBACK_GUIDANCE;
+      setMessages((m) => [
+        ...m,
+        { id: newId(), role: "user", content: trimmed },
+        { id: newId(), role: "assistant", content: ans },
+      ]);
+      setInput("");
+      setSrAnnounce(ans);
+      return;
+    }
 
     const userMsg: UiMessage = { id: newId(), role: "user", content: trimmed };
     const assistantId = newId();
@@ -123,8 +166,18 @@ export default function AssistantPage() {
           <p className="eyebrow">Assistant</p>
           <h1 className="page-title">Ask about your schedule</h1>
           <p className="page-subtitle">
-            Runs on your local Ollama model{" "}
-            <code>{settings.ollamaModel}</code>. Nothing leaves your machine.
+            {avail === "online" ? (
+              <>
+                Connected to your local model{" "}
+                <code>{settings.ollamaModel}</code>. Nothing leaves your
+                machine.
+              </>
+            ) : (
+              <>
+                Answering from your schedule on this device. Connect a local
+                Ollama model in Settings for open-ended chat.
+              </>
+            )}
           </p>
         </div>
       </header>

@@ -4,6 +4,7 @@ import {
   dueBucket,
   filterTasks,
   itemsForDay,
+  nextOccurrence,
   recommendTasks,
   sortTasks,
   summarize,
@@ -128,6 +129,26 @@ describe("summarize", () => {
       upcoming: 1,
       completed: 1,
     });
+  });
+});
+
+describe("nextOccurrence", () => {
+  it("advances by the right interval", () => {
+    expect(nextOccurrence("2026-09-07T17:00:00", { freq: "weekly" })).toBe(
+      new Date("2026-09-14T17:00:00").toISOString(),
+    );
+    expect(nextOccurrence("2026-09-07T17:00:00", { freq: "biweekly" })).toBe(
+      new Date("2026-09-21T17:00:00").toISOString(),
+    );
+  });
+
+  it("stops after the until date", () => {
+    expect(
+      nextOccurrence("2026-09-07T17:00:00", {
+        freq: "weekly",
+        until: "2026-09-10",
+      }),
+    ).toBeNull();
   });
 });
 

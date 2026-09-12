@@ -15,7 +15,7 @@ import { COURSE_PALETTE } from "@/lib/types";
 import * as store from "@/lib/store";
 import { deleteAudio } from "@/lib/audioStore";
 import { deleteFile } from "@/lib/fileStore";
-import { newId } from "@/lib/tasks";
+import { newId, nextOccurrence } from "@/lib/tasks";
 import type { DetectedCourse, DetectedTaskEvent } from "@/lib/ics";
 
 export interface NewArtifact {
@@ -58,6 +58,7 @@ export interface UseStore {
 
   addTask: (draft: TaskDraft) => Task;
   updateTask: (id: string, draft: TaskDraft) => void;
+  patchTask: (id: string, patch: Partial<Task>) => void;
   toggleComplete: (id: string) => void;
   deleteTask: (id: string) => Task | undefined;
   restoreTask: (task: Task) => void;
@@ -129,18 +130,49 @@ export function useStore(): UseStore {
     );
   }, []);
 
+  const patchTask = useCallback((id: string, patch: Partial<Task>) => {
+    store.patchTask(id, patch);
+  }, []);
+
   const toggleComplete = useCallback((id: string) => {
-    store.setTasks(
-      snap().tasks.map((t) =>
-        t.id === id
-          ? {
-              ...t,
-              completed: !t.completed,
-              completedAt: !t.completed ? new Date().toISOString() : undefined,
-            }
-          : t,
-      ),
+    const tasks = snap().tasks;
+    const target = tasks.find((t) => t.id === id);
+    if (!target) return;
+
+    if (target.completed) {
+      // Reopen.
+      store.setTasks(
+        tasks.map((t) =>
+          t.id === id ? { ...t, completed: false, completedAt: undefined } : t,
+        ),
+      );
+      return;
+    }
+
+    // Complete. The finished task becomes a plain record (recurrence removed);
+    // if it recurs, spawn the next occurrence as a fresh task.
+    const now = new Date().toISOString();
+    const next = tasks.map((t) =>
+      t.id === id
+        ? { ...t, completed: true, completedAt: now, recurrence: undefined }
+        : t,
     );
+    if (target.recurrence && target.dueAt) {
+      const nextDue = nextOccurrence(target.dueAt, target.recurrence);
+      if (nextDue) {
+        next.unshift({
+          ...target,
+          id: newId(),
+          completed: false,
+          completedAt: undefined,
+          dueAt: nextDue,
+          loggedMinutes: undefined,
+          recurrence: target.recurrence,
+          createdAt: now,
+        });
+      }
+    }
+    store.setTasks(next);
   }, []);
 
   const deleteTask = useCallback((id: string): Task | undefined => {
@@ -359,6 +391,7 @@ export function useStore(): UseStore {
     settings: state.settings,
     addTask,
     updateTask,
+    patchTask,
     toggleComplete,
     deleteTask,
     restoreTask,

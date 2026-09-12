@@ -139,6 +139,21 @@ export const DEFAULT_GRADE_SCALE: GradeBand[] = [
   { letter: "F", min: 0 },
 ];
 
+export type RecurrenceFreq = "daily" | "weekly" | "biweekly" | "monthly";
+
+export const RECURRENCE_LABELS: Record<RecurrenceFreq, string> = {
+  daily: "Daily",
+  weekly: "Weekly",
+  biweekly: "Every 2 weeks",
+  monthly: "Monthly",
+};
+
+export interface Recurrence {
+  freq: RecurrenceFreq;
+  /** Optional ISO date (yyyy-mm-dd) after which it stops repeating. */
+  until?: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -147,6 +162,8 @@ export interface Task {
   courseId?: string;
   /** ISO 8601 datetime. For study sessions, this is the scheduled time. */
   dueAt?: string;
+  /** When set, completing this task spawns the next occurrence. */
+  recurrence?: Recurrence;
   priority: Priority;
   estimatedMinutes?: number;
   /** Actual focused minutes logged via the study timer. */

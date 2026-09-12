@@ -7,6 +7,8 @@ import type {
   GradeCategory,
   GradeItem,
   Priority,
+  Recurrence,
+  RecurrenceFreq,
   Settings,
   StoreState,
   SyllabusMeta,
@@ -187,7 +189,27 @@ function coerceTask(value: unknown, fallbackTermId: string): Task | null {
     task.completedAt = v.completedAt as string;
   }
   if (linkedTaskId) task.linkedTaskId = linkedTaskId;
+  const recurrence = coerceRecurrence(v.recurrence);
+  if (recurrence) task.recurrence = recurrence;
   return task;
+}
+
+const RECURRENCE_FREQS: RecurrenceFreq[] = [
+  "daily",
+  "weekly",
+  "biweekly",
+  "monthly",
+];
+function coerceRecurrence(value: unknown): Recurrence | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const v = value as Record<string, unknown>;
+  if (!(RECURRENCE_FREQS as string[]).includes(v.freq as string)) {
+    return undefined;
+  }
+  const rec: Recurrence = { freq: v.freq as RecurrenceFreq };
+  const until = str(v.until);
+  if (until) rec.until = until;
+  return rec;
 }
 
 const ARTIFACT_KINDS: ArtifactKind[] = ["note", "transcript", "audio"];

@@ -1951,6 +1951,17 @@ body {
   text-decoration: line-through;
   color: var(--muted);
 }
+.cal-item.interactive[draggable="true"] {
+  cursor: grab;
+}
+.cal-item.interactive[draggable="true"]:active {
+  cursor: grabbing;
+}
+.day-col.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent);
+}
 
 /* --- Import confirm ------------------------------------------------ */
 .import-confirm {

@@ -31,12 +31,14 @@ export default function CalendarPage() {
     ready,
     addTask,
     updateTask,
+    patchTask,
     toggleComplete,
   } = useStore();
   const termId = settings.currentTermId;
 
   const [view, setView] = useState<View>("week");
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -89,6 +91,19 @@ export default function CalendarPage() {
     setFormOpen(true);
   }
 
+  function reschedule(taskId: string, day: Date) {
+    const t = tasks.find((x) => x.id === taskId);
+    if (!t) return;
+    const nd = new Date(day);
+    const base = t.dueAt ? new Date(t.dueAt) : null;
+    if (base && !Number.isNaN(base.getTime())) {
+      nd.setHours(base.getHours(), base.getMinutes(), 0, 0);
+    } else {
+      nd.setHours(17, 0, 0, 0);
+    }
+    patchTask(taskId, { dueAt: nd.toISOString() });
+  }
+
   function renderItem(item: CalendarItem, wide: boolean) {
     if (item.kind === "task" && item.task) {
       const task = item.task;
@@ -98,6 +113,11 @@ export default function CalendarPage() {
           className={wide ? "cal-item wide interactive" : "cal-item interactive"}
           style={{ borderInlineStartColor: item.color }}
           data-kind="task"
+          draggable={!wide}
+          onDragStart={(e) => {
+            e.dataTransfer.setData("text/plain", task.id);
+            e.dataTransfer.effectAllowed = "move";
+          }}
         >
           <input
             type="checkbox"
@@ -202,10 +222,32 @@ export default function CalendarPage() {
             {weekDays.map((day) => {
               const items = itemsForDay(day, termTasks, termCourses);
               const isToday = sameDay(day, today);
+              const key = day.toISOString();
+              const classes = [
+                "day-col",
+                isToday ? "is-today" : "",
+                dragOverKey === key ? "drag-over" : "",
+              ]
+                .filter(Boolean)
+                .join(" ");
               return (
                 <section
-                  key={day.toISOString()}
-                  className={isToday ? "day-col is-today" : "day-col"}
+                  key={key}
+                  className={classes}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    if (dragOverKey !== key) setDragOverKey(key);
+                  }}
+                  onDragLeave={() => {
+                    setDragOverKey((cur) => (cur === key ? null : cur));
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const id = e.dataTransfer.getData("text/plain");
+                    setDragOverKey(null);
+                    if (id) reschedule(id, day);
+                  }}
                   aria-label={day.toLocaleDateString(undefined, {
                     weekday: "long",
                     month: "long",

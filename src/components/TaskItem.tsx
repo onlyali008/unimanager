@@ -1,7 +1,7 @@
 "use client";
 
 import type { Course, Task } from "@/lib/types";
-import { TASK_TYPE_LABELS } from "@/lib/types";
+import { RECURRENCE_LABELS, TASK_TYPE_LABELS } from "@/lib/types";
 import { dueBucket, formatDuration, formatDue } from "@/lib/tasks";
 
 interface TaskItemProps {
@@ -80,6 +80,11 @@ export function TaskItem({
             {bucket === "overdue" && !task.completed ? "Overdue · " : ""}
             {formatDue(task.dueAt)}
           </span>
+          {task.recurrence && (
+            <span className="chip" title={`Repeats ${RECURRENCE_LABELS[task.recurrence.freq]}`}>
+              ↻ {RECURRENCE_LABELS[task.recurrence.freq]}
+            </span>
+          )}
           {duration && <span className="task-duration">· {duration}</span>}
           {task.loggedMinutes ? (
             <span className="task-logged">

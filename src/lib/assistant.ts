@@ -1,10 +1,14 @@
 import type { Course, Task, Term } from "./types";
 import {
   courseMap,
+  daysUntil,
   dueBucket,
   formatDue,
+  recommendTasks,
+  relativeDays,
   resolveCourse,
   sortTasks,
+  upcomingExams,
   WEEKDAY_LABELS,
 } from "./tasks";
 
@@ -78,6 +82,76 @@ export const ASSISTANT_SYSTEM_PROMPT =
   "Be concise and concrete: reference specific tasks, courses, and dates. If the " +
   "answer isn't in the data, say so plainly rather than inventing it. Never make " +
   "up assignments, grades, or dates.";
+
+/**
+ * Answer common schedule questions directly from the data, with no LLM.
+ * Returns null if the question doesn't match a known intent. Used as a
+ * fallback (and instant path) when no local model is connected.
+ */
+export function localAnswer(
+  question: string,
+  tasks: Task[],
+  courses: Course[],
+  now: Date = new Date(),
+): string | null {
+  const q = question.toLowerCase();
+  const cmap = courseMap(courses);
+  const active = tasks.filter((t) => !t.completed);
+
+  const line = (t: Task): string => {
+    const course = resolveCourse(t, cmap);
+    const code = course ? `${course.code || course.name} · ` : "";
+    const when = t.dueAt ? `${formatDue(t.dueAt)} (${relativeDays(t.dueAt, now)})` : "no due date";
+    return `• ${t.title} — ${code}${when}`;
+  };
+  const list = (items: Task[], empty: string): string =>
+    items.length ? items.map(line).join("\n") : empty;
+
+  if (/\boverdue|late|behind\b/.test(q)) {
+    const items = sortTasks(active.filter((t) => dueBucket(t, now) === "overdue"));
+    return `Overdue work:\n${list(items, "Nothing overdue — you're on top of it. 🎉")}`;
+  }
+  if (/\btoday|tonight\b/.test(q)) {
+    const items = sortTasks(active.filter((t) => dueBucket(t, now) === "today"));
+    return `Due today:\n${list(items, "Nothing due today. 🎉")}`;
+  }
+  if (/\bweek\b/.test(q)) {
+    const items = sortTasks(
+      active.filter((t) => {
+        if (!t.dueAt) return false;
+        const d = daysUntil(t.dueAt, now);
+        return d >= 0 && d <= 7;
+      }),
+    );
+    return `Due in the next 7 days:\n${list(items, "Nothing due this week. 🎉")}`;
+  }
+  if (/\bexam|midterm|final|test\b/.test(q)) {
+    const items = upcomingExams(active, now);
+    return `Upcoming exams:\n${list(items, "No exams scheduled. 🎉")}`;
+  }
+  if (/work on|focus|priorit|what should|next up|start with/.test(q)) {
+    const items = recommendTasks(active, now, 3);
+    return `Here's what I'd tackle next:\n${list(items, "You're all caught up. 🎉")}`;
+  }
+  if (/\bplan\b|schedule/.test(q)) {
+    const byDay: string[] = [];
+    for (let i = 0; i < 5; i += 1) {
+      const day = new Date(now);
+      day.setDate(day.getDate() + i);
+      const items = sortTasks(
+        active.filter((t) => t.dueAt && daysUntil(t.dueAt, now) === i),
+      );
+      if (items.length) {
+        const label = i === 0 ? "Today" : i === 1 ? "Tomorrow" : WEEKDAY_LABELS[day.getDay()];
+        byDay.push(`${label}:\n${items.map(line).join("\n")}`);
+      }
+    }
+    return byDay.length
+      ? `Your next few days:\n\n${byDay.join("\n\n")}`
+      : "Nothing scheduled in the next few days. 🎉";
+  }
+  return null;
+}
 
 export interface StreamOptions {
   baseUrl: string;

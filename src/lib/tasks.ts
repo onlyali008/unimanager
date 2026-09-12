@@ -1,4 +1,4 @@
-import type { Course, Priority, Task } from "./types";
+import type { Course, Priority, Recurrence, Task } from "./types";
 
 const PRIORITY_RANK: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
 
@@ -34,6 +34,38 @@ export function sortTasks(tasks: Task[]): Task[] {
     if (p !== 0) return p;
     return a.title.localeCompare(b.title);
   });
+}
+
+/** The next due datetime for a recurring task, or null if past its end. */
+export function nextOccurrence(
+  dueAt: string,
+  rec: Recurrence,
+): string | null {
+  const d = new Date(dueAt);
+  if (Number.isNaN(d.getTime())) return null;
+  const next = new Date(d);
+  switch (rec.freq) {
+    case "daily":
+      next.setDate(next.getDate() + 1);
+      break;
+    case "weekly":
+      next.setDate(next.getDate() + 7);
+      break;
+    case "biweekly":
+      next.setDate(next.getDate() + 14);
+      break;
+    case "monthly":
+      next.setMonth(next.getMonth() + 1);
+      break;
+  }
+  if (rec.until) {
+    const until = new Date(rec.until);
+    if (!Number.isNaN(until.getTime())) {
+      until.setHours(23, 59, 59, 999);
+      if (next.getTime() > until.getTime()) return null;
+    }
+  }
+  return next.toISOString();
 }
 
 /** Whole days from today until a due date (negative = past). */

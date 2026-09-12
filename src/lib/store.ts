@@ -84,6 +84,15 @@ export function setTasks(tasks: Task[]): void {
   commit({ ...ensureLoaded(), tasks });
 }
 
+/** Shallow-patch a single task (used by drag-to-reschedule). */
+export function patchTask(taskId: string, patch: Partial<Task>): void {
+  const s = ensureLoaded();
+  commit({
+    ...s,
+    tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, ...patch } : t)),
+  });
+}
+
 /** Add focused minutes to a task's logged total (used by the study timer). */
 export function logTaskMinutes(taskId: string, minutes: number): void {
   if (minutes <= 0) return;

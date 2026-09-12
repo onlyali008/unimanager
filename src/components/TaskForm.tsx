@@ -1,10 +1,17 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import type { Course, Priority, Task, TaskType } from "@/lib/types";
+import type {
+  Course,
+  Priority,
+  RecurrenceFreq,
+  Task,
+  TaskType,
+} from "@/lib/types";
 import {
   PRIORITIES,
   PRIORITY_LABELS,
+  RECURRENCE_LABELS,
   TASK_TYPES,
   TASK_TYPE_LABELS,
 } from "@/lib/types";
@@ -67,6 +74,12 @@ export function TaskForm({
     editing?.estimatedMinutes ? String(editing.estimatedMinutes) : "",
   );
   const [notes, setNotes] = useState(() => editing?.notes ?? "");
+  const [repeat, setRepeat] = useState<RecurrenceFreq | "none">(
+    () => editing?.recurrence?.freq ?? "none",
+  );
+  const [repeatUntil, setRepeatUntil] = useState(
+    () => editing?.recurrence?.until ?? "",
+  );
   const [error, setError] = useState<string | null>(null);
 
   // Drive the native <dialog> so we get focus trapping + Escape for free.
@@ -96,6 +109,10 @@ export function TaskForm({
           ? minutes
           : undefined,
       notes: notes.trim() || undefined,
+      recurrence:
+        repeat === "none"
+          ? undefined
+          : { freq: repeat, until: repeatUntil || undefined },
     });
   }
 
@@ -230,6 +247,44 @@ export function TaskForm({
               placeholder="Optional"
             />
           </div>
+
+          <div>
+            <label htmlFor={`${titleId}-repeat`} className="field-label">
+              Repeats
+            </label>
+            <select
+              id={`${titleId}-repeat`}
+              className="field-input"
+              value={repeat}
+              onChange={(e) =>
+                setRepeat(e.target.value as RecurrenceFreq | "none")
+              }
+            >
+              <option value="none">Does not repeat</option>
+              {(
+                Object.keys(RECURRENCE_LABELS) as RecurrenceFreq[]
+              ).map((f) => (
+                <option key={f} value={f}>
+                  {RECURRENCE_LABELS[f]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {repeat !== "none" && (
+            <div>
+              <label htmlFor={`${titleId}-until`} className="field-label">
+                Repeat until
+              </label>
+              <input
+                id={`${titleId}-until`}
+                type="date"
+                className="field-input"
+                value={repeatUntil}
+                onChange={(e) => setRepeatUntil(e.target.value)}
+              />
+            </div>
+          )}
 
           <div className="dialog-col-full">
             <label htmlFor={`${titleId}-notes`} className="field-label">

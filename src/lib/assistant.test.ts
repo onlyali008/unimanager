@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Course, Task, Term } from "./types";
-import { buildScheduleContext } from "./assistant";
+import { buildScheduleContext, localAnswer } from "./assistant";
 
 const NOW = new Date("2026-09-03T12:00:00");
 
@@ -64,5 +64,34 @@ describe("buildScheduleContext", () => {
   it("reports when there are no open tasks", () => {
     const ctx = buildScheduleContext([], courses, term, NOW);
     expect(ctx).toContain("No open tasks.");
+  });
+});
+
+describe("localAnswer", () => {
+  const tasks = [
+    task({ id: "1", title: "PSet 4", courseId: "c1", dueAt: "2026-09-01T09:00:00" }),
+    task({ id: "2", title: "Lab", courseId: "c1", dueAt: "2026-09-03T20:00:00" }),
+    task({ id: "3", title: "Final", type: "exam", dueAt: "2026-09-20T09:00:00" }),
+  ];
+
+  it("answers 'due today' from the data", () => {
+    const a = localAnswer("what's due today?", tasks, courses, NOW);
+    expect(a).toContain("Due today");
+    expect(a).toContain("Lab");
+    expect(a).not.toContain("PSet 4");
+  });
+
+  it("answers about overdue work", () => {
+    const a = localAnswer("anything overdue?", tasks, courses, NOW);
+    expect(a).toContain("PSet 4");
+  });
+
+  it("answers about exams", () => {
+    const a = localAnswer("when is my next exam?", tasks, courses, NOW);
+    expect(a).toContain("Final");
+  });
+
+  it("returns null for an unrecognized question", () => {
+    expect(localAnswer("what is the meaning of life?", tasks, courses, NOW)).toBeNull();
   });
 });
