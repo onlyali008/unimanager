@@ -54,6 +54,7 @@ export default function Dashboard() {
     addTask,
     updateTask,
     toggleComplete,
+    toggleSubtask,
     deleteTask,
     restoreTask,
     scheduleStudySession,
@@ -546,6 +547,7 @@ export default function Dashboard() {
                       onEdit={openEdit}
                       onDelete={handleDelete}
                       onSchedule={openSchedule}
+                      onToggleSubtask={toggleSubtask}
                     />
                   ))}
                 </TaskGroup>

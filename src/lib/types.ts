@@ -154,12 +154,20 @@ export interface Recurrence {
   until?: string;
 }
 
+export interface Subtask {
+  id: string;
+  title: string;
+  done: boolean;
+}
+
 export interface Task {
   id: string;
   title: string;
   type: TaskType;
   termId: string;
   courseId?: string;
+  /** Optional checklist of steps within the task. */
+  subtasks?: Subtask[];
   /** ISO 8601 datetime. For study sessions, this is the scheduled time. */
   dueAt?: string;
   /** When set, completing this task spawns the next occurrence. */
@@ -212,6 +220,8 @@ export interface Settings {
   ollamaUrl: string;
   /** Ollama model tag used by the assistant. */
   ollamaModel: string;
+  /** Fire browser notifications before deadlines while the app is open. */
+  remindersEnabled: boolean;
 }
 
 export const DEFAULT_OLLAMA_URL = "http://localhost:11434";
@@ -241,4 +251,5 @@ export const DEFAULT_SETTINGS: Omit<Settings, "currentTermId"> = {
   density: "comfortable",
   ollamaUrl: DEFAULT_OLLAMA_URL,
   ollamaModel: DEFAULT_OLLAMA_MODEL,
+  remindersEnabled: true,
 };

@@ -59,6 +59,7 @@ export interface UseStore {
   addTask: (draft: TaskDraft) => Task;
   updateTask: (id: string, draft: TaskDraft) => void;
   patchTask: (id: string, patch: Partial<Task>) => void;
+  toggleSubtask: (taskId: string, subId: string) => void;
   toggleComplete: (id: string) => void;
   deleteTask: (id: string) => Task | undefined;
   restoreTask: (task: Task) => void;
@@ -132,6 +133,16 @@ export function useStore(): UseStore {
 
   const patchTask = useCallback((id: string, patch: Partial<Task>) => {
     store.patchTask(id, patch);
+  }, []);
+
+  const toggleSubtask = useCallback((taskId: string, subId: string) => {
+    const t = snap().tasks.find((x) => x.id === taskId);
+    if (!t?.subtasks) return;
+    store.patchTask(taskId, {
+      subtasks: t.subtasks.map((s) =>
+        s.id === subId ? { ...s, done: !s.done } : s,
+      ),
+    });
   }, []);
 
   const toggleComplete = useCallback((id: string) => {
@@ -392,6 +403,7 @@ export function useStore(): UseStore {
     addTask,
     updateTask,
     patchTask,
+    toggleSubtask,
     toggleComplete,
     deleteTask,
     restoreTask,

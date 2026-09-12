@@ -188,6 +188,44 @@ export default function SettingsPage() {
           </section>
 
           <section className="card settings-section">
+            <h2 className="group-title">Reminders</h2>
+            <p className="muted-note">
+              Get a browser notification about 30 minutes before a task is due,
+              while Semestra is open in a tab.
+            </p>
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={settings.remindersEnabled}
+                onChange={(e) =>
+                  updateSettings({ remindersEnabled: e.target.checked })
+                }
+              />
+              <span>Enable deadline reminders</span>
+            </label>
+            <div className="data-buttons">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={async () => {
+                  if (typeof Notification === "undefined") {
+                    announce("This browser doesn't support notifications.");
+                    return;
+                  }
+                  const p = await Notification.requestPermission();
+                  announce(
+                    p === "granted"
+                      ? "Notifications enabled."
+                      : "Notifications are blocked — enable them in your browser settings.",
+                  );
+                }}
+              >
+                Enable notifications
+              </button>
+            </div>
+          </section>
+
+          <section className="card settings-section">
             <h2 className="group-title">Terms</h2>
             <div className="settings-grid">
               <div>

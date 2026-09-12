@@ -15,7 +15,9 @@ import {
   TASK_TYPES,
   TASK_TYPE_LABELS,
 } from "@/lib/types";
+import type { Subtask } from "@/lib/types";
 import type { TaskDraft } from "@/hooks/useStore";
+import { newId } from "@/lib/tasks";
 
 interface TaskFormProps {
   open: boolean;
@@ -80,6 +82,9 @@ export function TaskForm({
   const [repeatUntil, setRepeatUntil] = useState(
     () => editing?.recurrence?.until ?? "",
   );
+  const [subtasks, setSubtasks] = useState<Subtask[]>(
+    () => editing?.subtasks ?? [],
+  );
   const [error, setError] = useState<string | null>(null);
 
   // Drive the native <dialog> so we get focus trapping + Escape for free.
@@ -113,6 +118,12 @@ export function TaskForm({
         repeat === "none"
           ? undefined
           : { freq: repeat, until: repeatUntil || undefined },
+      subtasks: (() => {
+        const cleaned = subtasks
+          .map((s) => ({ ...s, title: s.title.trim() }))
+          .filter((s) => s.title.length > 0);
+        return cleaned.length > 0 ? cleaned : undefined;
+      })(),
     });
   }
 
@@ -285,6 +296,63 @@ export function TaskForm({
               />
             </div>
           )}
+
+          <div className="dialog-col-full">
+            <span className="field-label">Checklist</span>
+            <ul className="subtask-edit-list">
+              {subtasks.map((s) => (
+                <li key={s.id} className="subtask-edit-row">
+                  <input
+                    type="checkbox"
+                    checked={s.done}
+                    onChange={() =>
+                      setSubtasks((prev) =>
+                        prev.map((x) =>
+                          x.id === s.id ? { ...x, done: !x.done } : x,
+                        ),
+                      )
+                    }
+                    aria-label={`Mark step "${s.title || "untitled"}" done`}
+                  />
+                  <input
+                    className="field-input"
+                    value={s.title}
+                    onChange={(e) =>
+                      setSubtasks((prev) =>
+                        prev.map((x) =>
+                          x.id === s.id ? { ...x, title: e.target.value } : x,
+                        ),
+                      )
+                    }
+                    placeholder="Step…"
+                    aria-label="Step description"
+                  />
+                  <button
+                    type="button"
+                    className="btn-icon"
+                    onClick={() =>
+                      setSubtasks((prev) => prev.filter((x) => x.id !== s.id))
+                    }
+                    aria-label="Remove step"
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() =>
+                setSubtasks((prev) => [
+                  ...prev,
+                  { id: newId(), title: "", done: false },
+                ])
+              }
+            >
+              + Add step
+            </button>
+          </div>
 
           <div className="dialog-col-full">
             <label htmlFor={`${titleId}-notes`} className="field-label">

@@ -188,6 +188,7 @@ export function createSeedState(): StoreState {
       currentTermId: term.id,
       ollamaUrl: DEFAULT_OLLAMA_URL,
       ollamaModel: DEFAULT_OLLAMA_MODEL,
+      remindersEnabled: true,
     },
   };
 }

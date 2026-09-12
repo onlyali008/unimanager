@@ -11,6 +11,7 @@ interface TaskItemProps {
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
   onSchedule?: (task: Task) => void;
+  onToggleSubtask?: (taskId: string, subId: string) => void;
 }
 
 const PRIORITY_DOT: Record<Task["priority"], string> = {
@@ -28,10 +29,13 @@ export function TaskItem({
   onEdit,
   onDelete,
   onSchedule,
+  onToggleSubtask,
 }: TaskItemProps) {
   const bucket = task.completed ? "done" : dueBucket(task);
   const duration = formatDuration(task.estimatedMinutes);
   const accent = course?.color ?? FALLBACK_COLOR;
+  const subs = task.subtasks ?? [];
+  const doneSubs = subs.filter((s) => s.done).length;
 
   return (
     <li
@@ -86,12 +90,40 @@ export function TaskItem({
             </span>
           )}
           {duration && <span className="task-duration">· {duration}</span>}
+          {subs.length > 0 && (
+            <span className="chip" title="Checklist progress">
+              ✓ {doneSubs}/{subs.length}
+            </span>
+          )}
           {task.loggedMinutes ? (
             <span className="task-logged">
               · {formatDuration(task.loggedMinutes)} logged
             </span>
           ) : null}
         </div>
+        {subs.length > 0 && (
+          <details className="subtask-view">
+            <summary>Checklist</summary>
+            <ul className="subtask-list">
+              {subs.map((s) => (
+                <li key={s.id} className="subtask-row">
+                  <input
+                    type="checkbox"
+                    checked={s.done}
+                    disabled={!onToggleSubtask}
+                    onChange={() => onToggleSubtask?.(task.id, s.id)}
+                    aria-label={`Mark step "${s.title}" ${
+                      s.done ? "not done" : "done"
+                    }`}
+                  />
+                  <span className={s.done ? "subtask-title done" : "subtask-title"}>
+                    {s.title}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
         {task.notes && <p className="task-notes">{task.notes}</p>}
       </div>
 

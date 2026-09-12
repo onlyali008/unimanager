@@ -11,6 +11,7 @@ import type {
   RecurrenceFreq,
   Settings,
   StoreState,
+  Subtask,
   SyllabusMeta,
   Task,
   Term,
@@ -191,7 +192,21 @@ function coerceTask(value: unknown, fallbackTermId: string): Task | null {
   if (linkedTaskId) task.linkedTaskId = linkedTaskId;
   const recurrence = coerceRecurrence(v.recurrence);
   if (recurrence) task.recurrence = recurrence;
+  const subtasks = coerceSubtasks(v.subtasks);
+  if (subtasks) task.subtasks = subtasks;
   return task;
+}
+
+function coerceSubtasks(value: unknown): Subtask[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const subs: Subtask[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") continue;
+    const r = raw as Record<string, unknown>;
+    if (!str(r.id) || typeof r.title !== "string") continue;
+    subs.push({ id: r.id as string, title: r.title, done: r.done === true });
+  }
+  return subs.length > 0 ? subs : undefined;
 }
 
 const RECURRENCE_FREQS: RecurrenceFreq[] = [
@@ -258,6 +273,7 @@ function coerceSettings(value: unknown, currentTermId: string): Settings {
     currentTermId: str(v.currentTermId) ?? currentTermId,
     ollamaUrl: str(v.ollamaUrl) ?? DEFAULT_OLLAMA_URL,
     ollamaModel: str(v.ollamaModel) ?? DEFAULT_OLLAMA_MODEL,
+    remindersEnabled: v.remindersEnabled !== false,
   };
 }
 

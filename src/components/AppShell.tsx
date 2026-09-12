@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useStore } from "@/hooks/useStore";
 import { TimerWidget } from "@/components/TimerWidget";
 import { GlobalShortcuts } from "@/components/GlobalShortcuts";
+import { DeadlineReminders } from "@/components/DeadlineReminders";
 
 const NAV = [
   { href: "/", label: "Dashboard", short: "Home" },
@@ -96,6 +97,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <TimerWidget />
       <GlobalShortcuts />
+      <DeadlineReminders />
     </div>
   );
 }
