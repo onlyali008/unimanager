@@ -1,6 +1,47 @@
 import type { Course, GradeBand, GradeCategory } from "./types";
 import { DEFAULT_GRADE_SCALE, GPA_POINTS } from "./types";
 
+export interface DetectedCategory {
+  name: string;
+  weight: number;
+}
+
+function cleanLabel(raw: string): string {
+  return raw
+    .replace(/[•\-–—*:.\s]+$/g, "")
+    .replace(/^[•\-–—*.\s]+/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Detect weighted grade categories from pasted syllabus text, e.g.
+ * "Homework 20%", "Midterm: 30%", or "40% - Final Exam". Best-effort; returns
+ * de-duplicated {name, weight} pairs in the order found.
+ */
+export function parseGradingScheme(text: string): DetectedCategory[] {
+  const found = new Map<string, DetectedCategory>();
+  const add = (rawName: string, pct: number) => {
+    const name = cleanLabel(rawName);
+    if (!name || name.length > 40) return;
+    if (pct <= 0 || pct > 100) return;
+    if (/^\d+$/.test(name)) return;
+    const key = name.toLowerCase();
+    if (!found.has(key)) found.set(key, { name, weight: pct });
+  };
+
+  // "Label ... 30%"
+  const after = /([A-Za-z][A-Za-z &/()'’.-]{1,40}?)\s*[:\-–—]?\s*(\d{1,3})\s*%/g;
+  let m: RegExpExecArray | null;
+  while ((m = after.exec(text))) add(m[1], parseInt(m[2], 10));
+
+  // "30% ... Label" (percent first)
+  const before = /(\d{1,3})\s*%\s*[:\-–—]?\s*([A-Za-z][A-Za-z &/()'’.-]{1,40})/g;
+  while ((m = before.exec(text))) add(m[2], parseInt(m[1], 10));
+
+  return [...found.values()];
+}
+
 export interface CourseGrade {
   /** Weighted % across categories that have at least one graded item. */
   earnedPercent: number | null;

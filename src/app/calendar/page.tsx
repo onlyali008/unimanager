@@ -7,7 +7,9 @@ import {
   addDays,
   coursesInTerm,
   itemsForDay,
+  monthGridDays,
   sameDay,
+  startOfMonth,
   startOfWeek,
   tasksInTerm,
   WEEKDAY_LABELS,
@@ -15,7 +17,7 @@ import {
 } from "@/lib/tasks";
 import { TaskForm } from "@/components/TaskForm";
 
-type View = "week" | "agenda";
+type View = "week" | "month" | "agenda";
 
 function dueAtFor(day: Date): string {
   const d = new Date(day);
@@ -38,6 +40,7 @@ export default function CalendarPage() {
 
   const [view, setView] = useState<View>("week");
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
+  const [monthAnchor, setMonthAnchor] = useState(() => startOfMonth(new Date()));
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
 
   const [formOpen, setFormOpen] = useState(false);
@@ -61,6 +64,12 @@ export default function CalendarPage() {
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
     [weekStart],
   );
+
+  const monthDays = useMemo(() => monthGridDays(monthAnchor), [monthAnchor]);
+  const monthLabel = monthAnchor.toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+  });
 
   const agendaDays = useMemo(() => {
     const start = new Date();
@@ -158,6 +167,41 @@ export default function CalendarPage() {
     );
   }
 
+  function renderMonthItem(item: CalendarItem) {
+    if (item.kind === "task" && item.task) {
+      const task = item.task;
+      return (
+        <li key={item.id}>
+          <button
+            type="button"
+            className={task.completed ? "month-item done" : "month-item"}
+            style={{ borderInlineStartColor: item.color }}
+            title={`${item.title} · ${item.timeLabel}`}
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.setData("text/plain", task.id);
+              e.dataTransfer.effectAllowed = "move";
+            }}
+            onClick={() => editTask(task)}
+          >
+            {item.title}
+          </button>
+        </li>
+      );
+    }
+    return (
+      <li key={item.id}>
+        <span
+          className="month-item meeting"
+          style={{ borderInlineStartColor: item.color }}
+          title={`${item.title} · ${item.timeLabel}`}
+        >
+          {item.title}
+        </span>
+      </li>
+    );
+  }
+
   return (
     <div className="page">
       <header className="page-header">
@@ -169,22 +213,39 @@ export default function CalendarPage() {
             to edit it, or a day to add one.
           </p>
         </div>
-        <div className="view-toggle" role="group" aria-label="Calendar view">
+        <div className="calendar-actions">
+          <div className="view-toggle" role="group" aria-label="Calendar view">
+            <button
+              type="button"
+              className={view === "week" ? "btn btn-primary" : "btn btn-ghost"}
+              aria-pressed={view === "week"}
+              onClick={() => setView("week")}
+            >
+              Week
+            </button>
+            <button
+              type="button"
+              className={view === "month" ? "btn btn-primary" : "btn btn-ghost"}
+              aria-pressed={view === "month"}
+              onClick={() => setView("month")}
+            >
+              Month
+            </button>
+            <button
+              type="button"
+              className={view === "agenda" ? "btn btn-primary" : "btn btn-ghost"}
+              aria-pressed={view === "agenda"}
+              onClick={() => setView("agenda")}
+            >
+              Agenda
+            </button>
+          </div>
           <button
             type="button"
-            className={view === "week" ? "btn btn-primary" : "btn btn-ghost"}
-            aria-pressed={view === "week"}
-            onClick={() => setView("week")}
+            className="btn btn-ghost no-print"
+            onClick={() => window.print()}
           >
-            Week
-          </button>
-          <button
-            type="button"
-            className={view === "agenda" ? "btn btn-primary" : "btn btn-ghost"}
-            aria-pressed={view === "agenda"}
-            onClick={() => setView("agenda")}
-          >
-            Agenda
+            Print
           </button>
         </div>
       </header>
@@ -283,6 +344,108 @@ export default function CalendarPage() {
                 </section>
               );
             })}
+          </div>
+        </>
+      ) : view === "month" ? (
+        <>
+          <div className="week-nav">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() =>
+                setMonthAnchor(
+                  (m) => new Date(m.getFullYear(), m.getMonth() - 1, 1),
+                )
+              }
+            >
+              ← Previous
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setMonthAnchor(startOfMonth(new Date()))}
+            >
+              Today
+            </button>
+            <span className="week-range">{monthLabel}</span>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() =>
+                setMonthAnchor(
+                  (m) => new Date(m.getFullYear(), m.getMonth() + 1, 1),
+                )
+              }
+            >
+              Next →
+            </button>
+          </div>
+
+          <div className="month-grid">
+            <div className="month-weekdays" aria-hidden="true">
+              {WEEKDAY_LABELS.map((l) => (
+                <span key={l} className="month-weekday">
+                  {l}
+                </span>
+              ))}
+            </div>
+            <div className="month-cells">
+              {monthDays.map((day) => {
+                const items = itemsForDay(day, termTasks, termCourses);
+                const inMonth = day.getMonth() === monthAnchor.getMonth();
+                const isToday = sameDay(day, today);
+                const key = day.toISOString();
+                const classes = [
+                  "month-cell",
+                  inMonth ? "" : "other-month",
+                  isToday ? "is-today" : "",
+                  dragOverKey === key ? "drag-over" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
+                return (
+                  <div
+                    key={key}
+                    className={classes}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      if (dragOverKey !== key) setDragOverKey(key);
+                    }}
+                    onDragLeave={() =>
+                      setDragOverKey((cur) => (cur === key ? null : cur))
+                    }
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const id = e.dataTransfer.getData("text/plain");
+                      setDragOverKey(null);
+                      if (id) reschedule(id, day);
+                    }}
+                  >
+                    <div className="month-cell-head">
+                      <span className="month-cell-num">{day.getDate()}</span>
+                      <button
+                        type="button"
+                        className="day-add no-print"
+                        onClick={() => addOnDay(day)}
+                        aria-label={`Add a task due ${day.toLocaleDateString(
+                          undefined,
+                          { month: "long", day: "numeric" },
+                        )}`}
+                      >
+                        +
+                      </button>
+                    </div>
+                    <ul className="month-items">
+                      {items.slice(0, 3).map((item) => renderMonthItem(item))}
+                      {items.length > 3 && (
+                        <li className="month-more">+{items.length - 3} more</li>
+                      )}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </>
       ) : (

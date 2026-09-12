@@ -1695,6 +1695,16 @@ body {
 .quick-add-input {
   flex: 1;
 }
+.quick-add-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.quick-preview {
+  font-size: 0.82rem;
+  color: var(--accent);
+  padding-inline: 0.3rem;
+}
 @media (max-width: 560px) {
   .quick-add {
     flex-wrap: wrap;
@@ -1867,6 +1877,25 @@ body {
   font-size: 2rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+}
+.grade-detect > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.grade-detect textarea {
+  margin: 0.5rem 0;
+  resize: vertical;
+}
+.detect-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.88rem;
 }
 .grade-chip {
   color: var(--accent);
@@ -2098,4 +2127,155 @@ body {
 .subtask-title.done {
   text-decoration: line-through;
   color: var(--muted);
+}
+
+/* --- Calendar month view ------------------------------------------- */
+.calendar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.month-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 0.3rem;
+}
+.month-weekday {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+  padding: 0.25rem 0;
+}
+.month-cells {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+.month-cell {
+  background: var(--surface);
+  min-height: 6.5rem;
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.month-cell.other-month {
+  background: var(--surface-2);
+}
+.month-cell.is-today {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.month-cell.drag-over {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.month-cell-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.month-cell-num {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.other-month .month-cell-num {
+  color: var(--muted);
+  opacity: 0.7;
+}
+.month-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.month-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-size: 0.7rem;
+  line-height: 1.25;
+  padding: 0.1rem 0.3rem;
+  border: none;
+  border-inline-start: 3px solid var(--accent);
+  background: var(--surface-2);
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  color: inherit;
+}
+.month-item.meeting {
+  background: transparent;
+  border-inline-start-style: dashed;
+  cursor: default;
+}
+.month-item.done {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.month-more {
+  font-size: 0.68rem;
+  color: var(--muted);
+  padding-inline-start: 0.3rem;
+}
+@media (max-width: 720px) {
+  .month-cell {
+    min-height: 4rem;
+  }
+  .month-item {
+    font-size: 0.6rem;
+  }
+}
+
+/* --- Print: a clean weekly/monthly plan ---------------------------- */
+@media print {
+  .rail,
+  .bottom-nav,
+  .no-print,
+  .view-toggle,
+  .day-add,
+  .timer-widget,
+  .undo-toast,
+  .week-nav .btn,
+  .quick-add,
+  .chat-input {
+    display: none !important;
+  }
+  .shell {
+    display: block;
+  }
+  .content {
+    padding: 0;
+  }
+  .page {
+    max-width: none;
+    padding: 0.5rem;
+    gap: 0.75rem;
+  }
+  body {
+    background: #fff;
+  }
+  .card,
+  .day-col,
+  .month-cell {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+  .week-grid {
+    grid-template-columns: repeat(7, 1fr);
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }

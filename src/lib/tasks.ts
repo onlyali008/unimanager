@@ -267,6 +267,18 @@ export function startOfWeek(d: Date): Date {
   return x;
 }
 
+export function startOfMonth(d: Date): Date {
+  const x = new Date(d.getFullYear(), d.getMonth(), 1);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+/** 42 days (6 weeks) covering the month of `d`, aligned to Sunday. */
+export function monthGridDays(d: Date): Date[] {
+  const start = startOfWeek(startOfMonth(d));
+  return Array.from({ length: 42 }, (_, i) => addDays(start, i));
+}
+
 export function addDays(d: Date, days: number): Date {
   const x = new Date(d);
   x.setDate(x.getDate() + days);

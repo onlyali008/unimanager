@@ -1,10 +1,15 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { Course, GradeBand, GradeCategory, GradeItem } from "@/lib/types";
 import { DEFAULT_GRADE_SCALE } from "@/lib/types";
 import { newId } from "@/lib/tasks";
-import { computeCourseGrade, neededOnRemaining } from "@/lib/grades";
+import {
+  computeCourseGrade,
+  neededOnRemaining,
+  parseGradingScheme,
+  type DetectedCategory,
+} from "@/lib/grades";
 import { deleteFile, getFile, putFile } from "@/lib/fileStore";
 
 interface CourseGradesProps {
@@ -21,6 +26,8 @@ function fmtSize(bytes: number): string {
 
 export function CourseGrades({ course, onPatch, onMessage }: CourseGradesProps) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const [detectText, setDetectText] = useState("");
+  const [detected, setDetected] = useState<DetectedCategory[] | null>(null);
   const categories = course.categories ?? [];
   const scale = course.gradeScale ?? DEFAULT_GRADE_SCALE;
   const grade = computeCourseGrade(course);
@@ -78,6 +85,22 @@ export function CourseGrades({ course, onPatch, onMessage }: CourseGradesProps) 
       ),
     );
   }
+  function applyDetected() {
+    if (!detected) return;
+    const existing = new Set(categories.map((c) => c.name.toLowerCase()));
+    const toAdd: GradeCategory[] = detected
+      .filter((d) => !existing.has(d.name.toLowerCase()))
+      .map((d) => ({ id: newId(), name: d.name, weight: d.weight, items: [] }));
+    if (toAdd.length) setCategories([...categories, ...toAdd]);
+    onMessage(
+      toAdd.length
+        ? `Added ${toAdd.length} categor${toAdd.length === 1 ? "y" : "ies"} from the syllabus.`
+        : "Those categories are already here.",
+    );
+    setDetected(null);
+    setDetectText("");
+  }
+
   function removeItem(catId: string, itemId: string) {
     setCategories(
       categories.map((c) =>
@@ -324,6 +347,55 @@ export function CourseGrades({ course, onPatch, onMessage }: CourseGradesProps) 
           </span>
         </div>
       </div>
+
+      {/* Auto-detect from syllabus text */}
+      <details className="grade-detect">
+        <summary>Auto-detect categories from syllabus text</summary>
+        <p className="muted-note">
+          Paste the grading section of your syllabus and Semestra will pull out
+          the weighted categories.
+        </p>
+        <textarea
+          className="field-input"
+          rows={4}
+          value={detectText}
+          onChange={(e) => setDetectText(e.target.value)}
+          placeholder="e.g. Homework 20%, Midterm 30%, Final Exam 50%"
+          aria-label="Syllabus grading text"
+        />
+        <div className="scale-actions">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => setDetected(parseGradingScheme(detectText))}
+          >
+            Detect
+          </button>
+          {detected && detected.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={applyDetected}
+            >
+              Add {detected.length} categor{detected.length === 1 ? "y" : "ies"}
+            </button>
+          )}
+        </div>
+        {detected &&
+          (detected.length > 0 ? (
+            <ul className="detect-list">
+              {detected.map((d, i) => (
+                <li key={`${d.name}-${i}`}>
+                  {d.name} — {d.weight}%
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted-note">
+              No weighted categories found in that text.
+            </p>
+          ))}
+      </details>
 
       {/* Syllabus */}
       <div className="syllabus-row">

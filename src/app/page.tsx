@@ -12,6 +12,7 @@ import {
   daysUntil,
   dueBucket,
   filterTasks,
+  formatDue,
   formatDuration,
   itemsForDay,
   recommendTasks,
@@ -24,6 +25,7 @@ import {
   type DueBucket,
   type TaskFilters,
 } from "@/lib/tasks";
+import { parseQuickAdd } from "@/lib/quickparse";
 import { TaskForm } from "@/components/TaskForm";
 import { TaskItem } from "@/components/TaskItem";
 import { ScheduleDialog } from "@/components/ScheduleDialog";
@@ -213,12 +215,42 @@ export default function Dashboard() {
 
   function handleQuickAdd(e: React.FormEvent) {
     e.preventDefault();
-    const title = quickTitle.trim();
-    if (!title) return;
-    addTask({ title, type: "assignment", priority: "medium" });
+    const raw = quickTitle.trim();
+    if (!raw) return;
+    const p = parseQuickAdd(raw, activeCourses);
+    addTask({
+      title: p.title || raw,
+      type: p.type ?? "assignment",
+      priority: p.priority ?? "medium",
+      courseId: p.courseId,
+      dueAt: p.dueAt,
+      estimatedMinutes: p.estimatedMinutes,
+    });
     setQuickTitle("");
-    announce("Task added.");
+    announce(
+      `Added "${p.title || raw}"${
+        p.dueAt ? ` — due ${formatDue(p.dueAt)}` : ""
+      }.`,
+    );
   }
+
+  const quickPreview = useMemo(() => {
+    const raw = quickTitle.trim();
+    if (raw.length < 3) return null;
+    const p = parseQuickAdd(raw, activeCourses);
+    if (!p.dueAt && !p.courseId && !p.priority && !p.estimatedMinutes && !p.type) {
+      return null;
+    }
+    const course = p.courseId ? cmap.get(p.courseId) : undefined;
+    const bits = [`"${p.title || raw}"`];
+    if (course) bits.push(course.code || course.name);
+    if (p.dueAt) bits.push(formatDue(p.dueAt));
+    if (p.type) bits.push(p.type);
+    if (p.priority) bits.push(`${p.priority} priority`);
+    const dur = formatDuration(p.estimatedMinutes);
+    if (dur) bits.push(dur);
+    return bits.join(" · ");
+  }, [quickTitle, activeCourses, cmap]);
 
   function startTimerOn(task: Task) {
     timer.selectTask(task.id);
@@ -424,28 +456,36 @@ export default function Dashboard() {
         )}
       </section>
 
-      <form className="quick-add card" onSubmit={handleQuickAdd}>
-        <label htmlFor="quick-add" className="sr-only">
-          Quick add a task
-        </label>
-        <input
-          id="quick-add"
-          className="field-input quick-add-input"
-          value={quickTitle}
-          onChange={(e) => setQuickTitle(e.target.value)}
-          placeholder="Add a task and press Enter…"
-        />
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={!quickTitle.trim()}
-        >
-          Add
-        </button>
-        <button type="button" className="btn btn-ghost" onClick={openNew}>
-          More options
-        </button>
-      </form>
+      <div className="quick-add-wrap">
+        <form className="quick-add card" onSubmit={handleQuickAdd}>
+          <label htmlFor="quick-add" className="sr-only">
+            Quick add a task
+          </label>
+          <input
+            id="quick-add"
+            className="field-input quick-add-input"
+            value={quickTitle}
+            onChange={(e) => setQuickTitle(e.target.value)}
+            placeholder="e.g. Essay due fri 5pm #CS240 !high ~2h"
+          />
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={!quickTitle.trim()}
+          >
+            Add
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={openNew}>
+            More options
+          </button>
+        </form>
+        {quickPreview && (
+          <p className="quick-preview" aria-live="polite">
+            <span aria-hidden="true">→ </span>
+            {quickPreview}
+          </p>
+        )}
+      </div>
 
       <section aria-label="Filters" className="filters card">
         <div className="filter-field filter-search">

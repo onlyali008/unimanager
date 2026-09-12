@@ -6,6 +6,7 @@ import {
   computeTermGpa,
   letterForPercent,
   neededOnRemaining,
+  parseGradingScheme,
 } from "./grades";
 
 function course(partial: Partial<Course>): Course {
@@ -114,6 +115,27 @@ describe("neededOnRemaining", () => {
     });
     // earned points = 40; to reach 90 overall need (90-40)/50*100 = 100 on final
     expect(neededOnRemaining(c, 90)).toBeCloseTo(100);
+  });
+});
+
+describe("parseGradingScheme", () => {
+  it("detects labeled weights in common syllabus formats", () => {
+    const text = `Grading:
+Homework 20%
+Midterm: 30%
+40% - Final Exam
+Participation .......... 10%`;
+    const cats = parseGradingScheme(text);
+    const byName = Object.fromEntries(cats.map((c) => [c.name, c.weight]));
+    expect(byName["Homework"]).toBe(20);
+    expect(byName["Midterm"]).toBe(30);
+    expect(byName["Final Exam"]).toBe(40);
+    expect(byName["Participation"]).toBe(10);
+  });
+
+  it("ignores nonsense percentages", () => {
+    const cats = parseGradingScheme("attendance is 150% important, really 0%");
+    expect(cats).toHaveLength(0);
   });
 });
 
