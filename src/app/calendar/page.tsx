@@ -6,6 +6,7 @@ import { useStore } from "@/hooks/useStore";
 import {
   addDays,
   coursesInTerm,
+  formatDue,
   itemsForDay,
   monthGridDays,
   sameDay,
@@ -42,6 +43,7 @@ export default function CalendarPage() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const [monthAnchor, setMonthAnchor] = useState(() => startOfMonth(new Date()));
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+  const [announce, setAnnounce] = useState("");
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -100,6 +102,26 @@ export default function CalendarPage() {
     setFormOpen(true);
   }
 
+  function nudgeTask(task: Task, deltaDays: number) {
+    if (!task.dueAt) return;
+    const d = new Date(task.dueAt);
+    if (Number.isNaN(d.getTime())) return;
+    d.setDate(d.getDate() + deltaDays);
+    patchTask(task.id, { dueAt: d.toISOString() });
+    setAnnounce(`${task.title} moved to ${formatDue(d.toISOString())}`);
+  }
+
+  function taskKeyDown(e: React.KeyboardEvent, task: Task) {
+    let delta = 0;
+    if (e.key === "ArrowLeft") delta = -1;
+    else if (e.key === "ArrowRight") delta = 1;
+    else if (e.key === "ArrowUp") delta = -7;
+    else if (e.key === "ArrowDown") delta = 7;
+    else return;
+    e.preventDefault();
+    nudgeTask(task, delta);
+  }
+
   function reschedule(taskId: string, day: Date) {
     const t = tasks.find((x) => x.id === taskId);
     if (!t) return;
@@ -143,6 +165,7 @@ export default function CalendarPage() {
             type="button"
             className="cal-open"
             onClick={() => editTask(task)}
+            onKeyDown={(e) => taskKeyDown(e, task)}
           >
             <span className="cal-time">{item.timeLabel}</span>
             <span className={task.completed ? "cal-title done" : "cal-title"}>
@@ -183,6 +206,7 @@ export default function CalendarPage() {
               e.dataTransfer.effectAllowed = "move";
             }}
             onClick={() => editTask(task)}
+            onKeyDown={(e) => taskKeyDown(e, task)}
           >
             {item.title}
           </button>
@@ -210,7 +234,8 @@ export default function CalendarPage() {
           <h1 className="page-title">Plan your week</h1>
           <p className="page-subtitle">
             Class meetings, deadlines, and study sessions together. Click a task
-            to edit it, or a day to add one.
+            to edit, or drag it — or focus it and use arrow keys (←/→ a day, ↑/↓
+            a week) — to reschedule.
           </p>
         </div>
         <div className="calendar-actions">
@@ -249,6 +274,10 @@ export default function CalendarPage() {
           </button>
         </div>
       </header>
+
+      <div aria-live="polite" className="sr-only">
+        {announce}
+      </div>
 
       {!ready ? (
         <p className="muted-note">Loading…</p>

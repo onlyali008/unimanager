@@ -11,6 +11,7 @@ import {
   type DetectedCategory,
 } from "@/lib/grades";
 import { deleteFile, getFile, putFile } from "@/lib/fileStore";
+import { extractTextFromBlob } from "@/lib/pdf";
 
 interface CourseGradesProps {
   course: Course;
@@ -28,6 +29,7 @@ export function CourseGrades({ course, onPatch, onMessage }: CourseGradesProps) 
   const fileRef = useRef<HTMLInputElement>(null);
   const [detectText, setDetectText] = useState("");
   const [detected, setDetected] = useState<DetectedCategory[] | null>(null);
+  const [detecting, setDetecting] = useState(false);
   const categories = course.categories ?? [];
   const scale = course.gradeScale ?? DEFAULT_GRADE_SCALE;
   const grade = computeCourseGrade(course);
@@ -85,6 +87,31 @@ export function CourseGrades({ course, onPatch, onMessage }: CourseGradesProps) 
       ),
     );
   }
+  async function detectFromSyllabusFile() {
+    if (!course.syllabus) return;
+    setDetecting(true);
+    try {
+      const blob = await getFile(course.syllabus.fileId);
+      if (!blob) {
+        onMessage("Syllabus file isn't available on this device.");
+        return;
+      }
+      const text = await extractTextFromBlob(blob, course.syllabus.mimeType);
+      setDetectText(text.slice(0, 8000));
+      const found = parseGradingScheme(text);
+      setDetected(found);
+      onMessage(
+        found.length
+          ? `Found ${found.length} categor${found.length === 1 ? "y" : "ies"} in the syllabus.`
+          : "Couldn't find weighted categories in the syllabus text.",
+      );
+    } catch {
+      onMessage("Could not read that syllabus file.");
+    } finally {
+      setDetecting(false);
+    }
+  }
+
   function applyDetected() {
     if (!detected) return;
     const existing = new Set(categories.map((c) => c.name.toLowerCase()));
@@ -364,12 +391,22 @@ export function CourseGrades({ course, onPatch, onMessage }: CourseGradesProps) 
           aria-label="Syllabus grading text"
         />
         <div className="scale-actions">
+          {course.syllabus && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={detectFromSyllabusFile}
+              disabled={detecting}
+            >
+              {detecting ? "Reading…" : "Read uploaded syllabus"}
+            </button>
+          )}
           <button
             type="button"
             className="btn btn-ghost btn-sm"
             onClick={() => setDetected(parseGradingScheme(detectText))}
           >
-            Detect
+            Detect from text
           </button>
           {detected && detected.length > 0 && (
             <button
