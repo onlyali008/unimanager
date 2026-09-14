@@ -101,6 +101,31 @@ src/
     *.test.ts     Vitest unit tests
 ```
 
+## Deploy
+
+Semestra is a fully client-rendered, local-first app, so `npm run build`
+produces a **static site** in `out/` that can be hosted anywhere — no server
+required.
+
+- **Netlify / Vercel / any static host:** build and serve `out/` at the root.
+- **GitHub Pages:** push to `local-first-planner` with Pages set to the
+  "GitHub Actions" source; `.github/workflows/pages.yml` builds with
+  `NEXT_PUBLIC_BASE_PATH=/<repo>` and publishes automatically. (For a sub-path
+  host, set `NEXT_PUBLIC_BASE_PATH` to your repo name at build time.)
+- **Locally preview the export:** `npm run build && npx serve out`.
+
+Because everything is local-first, there are no environment variables or
+secrets to configure. The only optional integration is a **local Ollama**
+server for the assistant, which runs on the student's own machine.
+
+## Privacy
+
+Semestra stores everything in your browser — tasks and courses in
+`localStorage`, audio recordings and syllabus files in IndexedDB. Nothing is
+uploaded to any server. Your data lives on the device you use it on; export a
+JSON backup from Settings to move it or keep it safe. Clearing your browser's
+site data removes it.
+
 ## Testing & CI
 
 `npm test` covers deadline bucketing/sorting/filtering, recommendations,

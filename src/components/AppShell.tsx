@@ -80,6 +80,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <main id="main" className="content">
         {children}
+        <footer className="app-privacy">
+          Your data stays on this device — nothing is uploaded. Back it up any
+          time from <Link href="/settings">Settings</Link>.
+        </footer>
       </main>
 
       <nav className="bottom-nav" aria-label="Primary">

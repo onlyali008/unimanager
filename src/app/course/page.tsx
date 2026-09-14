@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useStore } from "@/hooks/useStore";
 import { ARTIFACT_KIND_LABELS } from "@/lib/types";
 import {
@@ -17,9 +17,9 @@ import { AudioRecorder } from "@/components/AudioRecorder";
 import { ArtifactViewer } from "@/components/ArtifactViewer";
 import { CourseGrades } from "@/components/CourseGrades";
 
-export default function CourseDetailPage() {
-  const params = useParams<{ id: string }>();
-  const id = params.id;
+function CourseDetail() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id") ?? "";
   const {
     courses,
     tasks,
@@ -312,5 +312,19 @@ export default function CourseDetailPage() {
         )}
       </section>
     </div>
+  );
+}
+
+export default function CoursePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="page">
+          <p className="muted-note">Loading…</p>
+        </div>
+      }
+    >
+      <CourseDetail />
+    </Suspense>
   );
 }

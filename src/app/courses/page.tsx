@@ -137,7 +137,7 @@ export default function CoursesPage() {
                       </p>
                       <h2 className="course-name">
                         <Link
-                          href={`/courses/${course.id}`}
+                          href={`/course?id=${course.id}`}
                           className="course-name-link"
                         >
                           {course.name}
