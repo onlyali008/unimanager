@@ -13,16 +13,32 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const TITLE = "Semestra — your semester at a glance";
+const DESCRIPTION =
+  "A calm, local-first semester planner that turns your courses, assignments, and exams into a clear daily plan. Your data stays in your browser.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "Semestra — your semester at a glance",
+    default: TITLE,
     template: "%s · Semestra",
   },
-  description:
-    "A calm, local-first semester planner that turns your courses, assignments, and exams into a clear daily plan. Your data stays in your browser.",
+  description: DESCRIPTION,
   applicationName: "Semestra",
   authors: [{ name: "Semestra" }],
   keywords: ["semester planner", "student tasks", "assignments", "study plan"],
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    siteName: "Semestra",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
 };
 
 export const viewport: Viewport = {

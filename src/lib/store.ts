@@ -8,7 +8,7 @@ import type {
   Task,
   Term,
 } from "./types";
-import { clearAll, loadState, resetToDemo, saveState } from "./storage";
+import { loadState, saveState } from "./storage";
 import { createSeedState } from "./seed";
 import { deleteAudio } from "./audioStore";
 
@@ -46,9 +46,49 @@ function emit(): void {
   for (const listener of listeners) listener();
 }
 
-function commit(next: StoreState): void {
+// Persistence is debounced: in-memory state and the UI update instantly on
+// every change (cheap), but serializing the whole store to localStorage (the
+// expensive part) is coalesced. A flush on tab-hide guarantees no lost writes.
+const SAVE_DELAY = 400;
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let pending: StoreState | null = null;
+
+function flushSave(): void {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  if (pending) {
+    saveState(pending);
+    pending = null;
+  }
+}
+
+function scheduleSave(next: StoreState): void {
+  pending = next;
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(flushSave, SAVE_DELAY);
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", flushSave);
+  window.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushSave();
+  });
+}
+
+function commit(next: StoreState, immediate = false): void {
   current = next;
-  saveState(next);
+  if (immediate) {
+    if (saveTimer) {
+      clearTimeout(saveTimer);
+      saveTimer = null;
+    }
+    pending = null;
+    saveState(next);
+  } else {
+    scheduleSave(next);
+  }
   emit();
 }
 
@@ -147,28 +187,27 @@ export function setSettings(settings: Settings): void {
   commit({ ...ensureLoaded(), settings });
 }
 
-/* --- Whole-store operations --------------------------------------- */
+/* --- Whole-store operations (persist immediately) ------------------ */
 export function resetDemoStore(): void {
   const old = ensureLoaded().artifacts;
-  current = resetToDemo();
-  cleanupAudio(old, current.artifacts);
-  emit();
+  const seeded = createSeedState();
+  cleanupAudio(old, seeded.artifacts);
+  commit(seeded, true);
 }
 
 export function clearStore(): void {
-  current = clearAll(ensureLoaded());
-  emit();
+  commit({ ...ensureLoaded(), tasks: [] }, true);
 }
 
 /** Remove all tasks, courses, and artifacts (keep terms + settings). */
 export function startFresh(): void {
   const s = ensureLoaded();
   cleanupAudio(s.artifacts, []);
-  commit({ ...s, tasks: [], courses: [], artifacts: [] });
+  commit({ ...s, tasks: [], courses: [], artifacts: [] }, true);
 }
 
 export function replaceStore(state: StoreState): void {
   const old = ensureLoaded().artifacts;
   cleanupAudio(old, state.artifacts);
-  commit(state);
+  commit(state, true);
 }
