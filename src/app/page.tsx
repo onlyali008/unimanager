@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Task } from "@/lib/types";
 import { TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/types";
@@ -61,7 +62,6 @@ export default function Dashboard() {
     restoreTask,
     scheduleStudySession,
     resetDemo,
-    startFresh,
   } = useStore();
 
   const termId = settings.currentTermId;
@@ -186,8 +186,7 @@ export default function Dashboard() {
     0,
   );
 
-  const showWelcome =
-    ready && !welcomeDismissed && tasks.some((t) => t.id.startsWith("seed-"));
+  const showWelcome = ready && !welcomeDismissed;
 
   function dismissWelcome() {
     setWelcomeDismissed(true);
@@ -319,28 +318,35 @@ export default function Dashboard() {
           <div>
             <h2 className="welcome-title">Welcome to Semestra 👋</h2>
             <p className="muted-note">
-              You&apos;re looking at example data so you can explore. When
-              you&apos;re ready, start fresh and add your own courses and tasks.
+              Add your first course or task below — or take a quick tour to see
+              everything Semestra can do. Everything stays on your device.
             </p>
           </div>
           <div className="welcome-actions">
+            <Link
+              href="/guide"
+              className="btn btn-primary"
+              onClick={dismissWelcome}
+            >
+              Take the tour
+            </Link>
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-ghost"
               onClick={() => {
-                startFresh();
+                resetDemo();
                 dismissWelcome();
-                announce("Cleared example data. Add your own to begin.");
+                announce("Loaded sample data. Explore, then start fresh anytime.");
               }}
             >
-              Start fresh
+              Load sample data
             </button>
             <button
               type="button"
               className="btn btn-ghost"
               onClick={dismissWelcome}
             >
-              Keep exploring
+              Dismiss
             </button>
           </div>
         </section>

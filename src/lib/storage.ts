@@ -25,7 +25,7 @@ import {
   PRIORITIES,
   TASK_TYPES,
 } from "./types";
-import { createSeedState } from "./seed";
+import { createDemoState, createEmptyState } from "./seed";
 
 const STORAGE_KEY = "semestra.store";
 const INIT_KEY = "semestra.initialized";
@@ -387,7 +387,7 @@ function migrate(raw: unknown): StoreState {
 
 export function loadState(): StoreState {
   if (typeof window === "undefined") {
-    return createSeedState();
+    return createEmptyState();
   }
 
   const initialized = window.localStorage.getItem(INIT_KEY) === "true";
@@ -395,9 +395,10 @@ export function loadState(): StoreState {
 
   if (rawString === null) {
     if (!initialized) {
-      const seeded = createSeedState();
-      saveState(seeded);
-      return seeded;
+      // First run: start empty. Sample data is opt-in from the dashboard.
+      const empty = createEmptyState();
+      saveState(empty);
+      return empty;
     }
     return migrate({ version: CURRENT_SCHEMA_VERSION });
   }
@@ -410,9 +411,10 @@ export function loadState(): StoreState {
     } catch {
       /* ignore backup quota errors */
     }
-    const seeded = createSeedState();
-    saveState(seeded);
-    return seeded;
+    // Recover to an empty store rather than injecting demo content.
+    const empty = createEmptyState();
+    saveState(empty);
+    return empty;
   }
 }
 
@@ -427,7 +429,7 @@ export function saveState(state: StoreState): void {
 }
 
 export function resetToDemo(): StoreState {
-  const seeded = createSeedState();
+  const seeded = createDemoState();
   saveState(seeded);
   return seeded;
 }

@@ -21,7 +21,33 @@ function currentTermName(now = new Date()): string {
   return `Fall ${year}`;
 }
 
-export function createSeedState(): StoreState {
+function defaultSettings(termId: string) {
+  return {
+    theme: "system" as const,
+    density: "comfortable" as const,
+    currentTermId: termId,
+    ollamaUrl: DEFAULT_OLLAMA_URL,
+    ollamaModel: DEFAULT_OLLAMA_MODEL,
+    remindersEnabled: true,
+  };
+}
+
+/** A clean starting point: one term, no courses or tasks. Used on first run. */
+export function createEmptyState(): StoreState {
+  const term: Term = { id: "term-1", name: currentTermName() };
+  return {
+    version: CURRENT_SCHEMA_VERSION,
+    terms: [term],
+    courses: [],
+    tasks: [],
+    artifacts: [],
+    focusLog: [],
+    settings: defaultSettings(term.id),
+  };
+}
+
+/** Sample content, loaded only when the student opts in. */
+export function createDemoState(): StoreState {
   const now = new Date().toISOString();
   const term: Term = {
     id: "term-1",

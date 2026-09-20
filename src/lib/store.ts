@@ -9,7 +9,7 @@ import type {
   Term,
 } from "./types";
 import { loadState, saveState } from "./storage";
-import { createSeedState } from "./seed";
+import { createDemoState, createEmptyState } from "./seed";
 import { deleteAudio } from "./audioStore";
 
 /** Best-effort delete of audio blobs whose artifacts no longer exist. */
@@ -24,15 +24,8 @@ function cleanupAudio(oldArtifacts: Artifact[], nextArtifacts: Artifact[]): void
   }
 }
 
-// Stable empty-ish snapshot for SSR/hydration. Uses the seed's shape but no
-// data, so server and client initial markup agree.
-const SERVER_SNAPSHOT: StoreState = {
-  ...createSeedState(),
-  tasks: [],
-  courses: [],
-  artifacts: [],
-  focusLog: [],
-};
+// Stable empty snapshot for SSR/hydration so server and client markup agree.
+const SERVER_SNAPSHOT: StoreState = createEmptyState();
 
 let current: StoreState | null = null;
 const listeners = new Set<() => void>();
@@ -190,7 +183,7 @@ export function setSettings(settings: Settings): void {
 /* --- Whole-store operations (persist immediately) ------------------ */
 export function resetDemoStore(): void {
   const old = ensureLoaded().artifacts;
-  const seeded = createSeedState();
+  const seeded = createDemoState();
   cleanupAudio(old, seeded.artifacts);
   commit(seeded, true);
 }

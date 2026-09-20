@@ -9,14 +9,17 @@ import { GlobalShortcuts } from "@/components/GlobalShortcuts";
 import { DeadlineReminders } from "@/components/DeadlineReminders";
 
 const NAV = [
-  { href: "/", label: "Dashboard", short: "Home" },
-  { href: "/courses", label: "Courses", short: "Courses" },
-  { href: "/calendar", label: "Calendar", short: "Calendar" },
-  { href: "/timer", label: "Timer", short: "Timer" },
-  { href: "/progress", label: "Progress", short: "Grades" },
-  { href: "/assistant", label: "Assistant", short: "Chat" },
-  { href: "/settings", label: "Settings", short: "Settings" },
+  { href: "/", label: "Dashboard", short: "Home", railOnly: false },
+  { href: "/courses", label: "Courses", short: "Courses", railOnly: false },
+  { href: "/calendar", label: "Calendar", short: "Calendar", railOnly: false },
+  { href: "/timer", label: "Timer", short: "Timer", railOnly: false },
+  { href: "/progress", label: "Progress", short: "Grades", railOnly: false },
+  { href: "/assistant", label: "Assistant", short: "Chat", railOnly: false },
+  { href: "/guide", label: "Guide", short: "Guide", railOnly: true },
+  { href: "/settings", label: "Settings", short: "Settings", railOnly: false },
 ];
+
+const BOTTOM_NAV = NAV.filter((item) => !item.railOnly);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -87,7 +90,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </main>
 
       <nav className="bottom-nav" aria-label="Primary">
-        {NAV.map((item) => (
+        {BOTTOM_NAV.map((item) => (
           <Link
             key={item.href}
             href={item.href}
