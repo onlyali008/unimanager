@@ -18,6 +18,7 @@ export default function SettingsPage() {
     setCurrentTerm,
     resetDemo,
     clear,
+    startFresh,
     replaceAll,
   } = useStore();
 
@@ -32,9 +33,9 @@ export default function SettingsPage() {
   }
 
   const [busy, setBusy] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<"reset" | "clear" | null>(
-    null,
-  );
+  const [confirmAction, setConfirmAction] = useState<
+    "reset" | "clear" | "fresh" | null
+  >(null);
   const [pendingImport, setPendingImport] = useState<{
     text: string;
     tasks: number;
@@ -430,6 +431,36 @@ export default function SettingsPage() {
                   onClick={() => setConfirmAction("clear")}
                 >
                   Clear all tasks
+                </button>
+              )}
+              {confirmAction === "fresh" ? (
+                <span className="confirm-inline">
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={() => {
+                      startFresh();
+                      setConfirmAction(null);
+                      announce("Cleared everything. Add your own to begin.");
+                    }}
+                  >
+                    Confirm — remove everything
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => setConfirmAction(null)}
+                  >
+                    Cancel
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={() => setConfirmAction("fresh")}
+                >
+                  Start fresh (remove all data)
                 </button>
               )}
             </div>
